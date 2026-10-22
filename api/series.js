@@ -4,7 +4,7 @@
 // kinds: daily, sleep, hrv, weight, bb, activities (activities are keyed by start time)
 import { DATA_PATH, isAuthed, readStore, sendJson, flatten, getPath } from '../lib/common.js';
 
-const KINDS = ['daily', 'sleep', 'hrv', 'weight', 'bb', 'activities'];
+const KINDS = ['daily', 'sleep', 'hrv', 'weight', 'bb', 'v1', 'activities'];
 
 export default async function handler(req, res) {
   if (!isAuthed(req)) return sendJson(res, 401, { error: 'login' });

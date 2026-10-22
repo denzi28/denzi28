@@ -1,14 +1,11 @@
-// Everything about one activity: the list summary we already have, plus the full detail,
-// laps/splits, HR zones and second-by-second streams, fetched from Garmin on first open and cached.
+// Everything about one activity: the list summary we already have, plus the full detail and
+// second-by-second streams (with the GPS track), fetched from Garmin on first open and cached.
 import { DATA_PATH, isAuthed, readStore, writeStore, sendJson, garminTry, GarminKeyError } from '../lib/common.js';
 
+// Laps, HR zones and weather return 404 on the Personal API, so only these two are fetched.
 const PARTS = [
   ['detail', (id) => `/activity-service/activity/${id}`],
-  ['splits', (id) => `/activity-service/activity/${id}/splits`],
-  ['typedSplits', (id) => `/activity-service/activity/${id}/typedsplits`],
-  ['hrZones', (id) => `/activity-service/activity/${id}/hrTimeInZones`],
-  ['streams', (id) => `/activity-service/activity/${id}/details?maxChartSize=600&maxPolylineSize=0`],
-  ['weather', (id) => `/activity-service/activity/${id}/weather`],
+  ['streams', (id) => `/activity-service/activity/${id}/details?maxChartSize=600&maxPolylineSize=3000`],
 ];
 
 export default async function handler(req, res) {
@@ -25,7 +22,7 @@ export default async function handler(req, res) {
   // Re-fetch if never fetched, on request, or hourly for activities from the last two days
   // (Garmin may still be processing them).
   const age = Date.now() - Date.parse(String(summary.startTimeLocal).replace(' ', 'T'));
-  const stale = !cached || req.query?.refresh === '1' || (age < 2 * 86400e3 && Date.now() - Date.parse(cached.at) > 3600e3);
+  const stale = !cached || cached.v !== 2 || req.query?.refresh === '1' || (age < 2 * 86400e3 && Date.now() - Date.parse(cached.at) > 3600e3);
   if (stale) {
     try {
       const parts = {}, status = {};
@@ -34,9 +31,9 @@ export default async function handler(req, res) {
         status[name] = r.status;
         if (r.ok) parts[name] = r.data;
       }
-      cached = { at: new Date().toISOString(), parts, status };
+      cached = { v: 2, at: new Date().toISOString(), parts, status };
       await writeStore(cachePath, cached);
-      console.log(`activity parts: ${JSON.stringify(status)}`);
+      console.log(`activity parts: ${JSON.stringify(status)} metrics: ${JSON.stringify((parts.streams?.metricDescriptors || []).map((d) => d.key))} polyline: ${parts.streams?.geoPolylineDTO?.polyline?.length ?? 0}`);
     } catch (err) {
       if (err instanceof GarminKeyError) return sendJson(res, 502, { error: 'garmin_key', message: err.message });
       if (!cached) return sendJson(res, 502, { error: 'garmin', message: err.message });
