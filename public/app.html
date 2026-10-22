@@ -1326,14 +1326,14 @@ async function viewActivity(v, id) {
   const zc = document.createElement('div'); zc.className = 'card';
   zc.innerHTML = `<div class="card-title"><h3>Heart-rate zones</h3><span>${zt ? fmtHours(zt) : ''}</span></div>` + (zt ? zArr.map((z, i) => `<div class="zone-row"><span class="muted">Zone ${i + 1}${Array.isArray(P.hrZones) && P.hrZones[i]?.zoneLowBoundary ? `<br><span class="small">${P.hrZones[i].zoneLowBoundary}+ bpm</span>` : ''}</span><div class="bar"><div style="width:${((z || 0) / Math.max(...zArr)) * 100}%;background:var(--z${i + 1})"></div></div><span class="v">${fmtHours(z || 0)} · ${Math.round(((z || 0) / zt) * 100)}%</span></div>`).join('') : '<div class="empty">No zone data.</div>');
   colA.appendChild(zc);
-  // laps
-  const laps = P.splits?.lapDTOs || [];
+  // laps: Garmin's own, or per-km splits worked out from the second-by-second data
+  const st = parseStreams(P.streams);
+  const laps = P.splits?.lapDTOs?.length ? P.splits.lapDTOs : kmSplits(st);
   const lapCard = document.createElement('div'); lapCard.className = 'card';
   lapCard.innerHTML = `<div class="card-title"><h3>Laps</h3><span>${laps.length || ''}</span></div>` + (laps.length ? `<div class="table-wrap"><table><thead><tr><th>#</th><th class="n">Km</th><th class="n">Time</th><th class="n">Pace</th><th class="n">Avg HR</th><th class="n">Max HR</th><th class="n">Elev +</th><th class="n">Cadence</th></tr></thead><tbody>${laps.map((l, i) => `<tr><td>${i + 1}</td><td class="n">${l.distance != null ? (l.distance / 1000).toFixed(2) : '–'}</td><td class="n">${fmtClock(l.duration ?? l.elapsedDuration)}</td><td class="n">${l.averageSpeed > 0.3 ? fmtClock(1000 / l.averageSpeed) : '–'}</td><td class="n">${l.averageHR ? Math.round(l.averageHR) : '–'}</td><td class="n">${l.maxHR ? Math.round(l.maxHR) : '–'}</td><td class="n">${l.elevationGain != null ? Math.round(l.elevationGain) : '–'}</td><td class="n">${l.averageRunCadence ? Math.round(l.averageRunCadence) : '–'}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">No laps from Garmin.</div>');
   colB.appendChild(lapCard);
 
   // streams
-  const st = parseStreams(P.streams);
   if (st) {
     const xs = st.dist ? st.dist.map((d) => (d == null ? null : d / 1000)) : st.time.map((t) => (t == null ? null : t / 60));
     const xLabel = st.dist ? (x) => `${x.toFixed(2)} km` : (x) => `${x.toFixed(1)} min`;
@@ -1355,6 +1355,26 @@ async function viewActivity(v, id) {
 
   kvDetails($('#raw-summary'), 'All summary fields', body.summary, `activity-${id}-summary.json`);
   if (P.detail) kvDetails($('#raw-detail'), 'All detail fields', P.detail, `activity-${id}-detail.json`); else $('#raw-detail').remove();
+}
+function kmSplits(st) {
+  if (!st || !st.dist || !st.time) return [];
+  const out = [];
+  let k = 1, from = 0;
+  const seg = (i0, i1, distance) => {
+    const hrs = (st.hr || []).slice(i0, i1 + 1).filter((x) => x != null);
+    const el = (st.elev || []).slice(i0, i1 + 1);
+    let gain = 0; for (let j = 1; j < el.length; j++) if (el[j] != null && el[j - 1] != null && el[j] > el[j - 1]) gain += el[j] - el[j - 1];
+    const cad = (st.cad || []).slice(i0, i1 + 1).filter((x) => x);
+    const duration = st.time[i1] - st.time[i0];
+    return { distance, duration, averageSpeed: duration > 0 ? distance / duration : null, averageHR: avg(hrs), maxHR: hrs.length ? Math.max(...hrs) : null, elevationGain: gain, averageRunCadence: cad.length ? avg(cad.map((c) => (c < 120 ? c * 2 : c))) : null };
+  };
+  for (let i = 0; i < st.dist.length; i++) {
+    if (st.dist[i] == null || st.time[i] == null) continue;
+    if (st.dist[i] >= k * 1000) { out.push(seg(from, i, st.dist[i] - (st.dist[from] || 0))); from = i; k++; }
+  }
+  const last = st.dist.length - 1;
+  if (last > from && st.dist[last] - (st.dist[from] || 0) > 50) out.push(seg(from, last, st.dist[last] - (st.dist[from] || 0)));
+  return out;
 }
 function parseStreams(s) {
   if (!s || !Array.isArray(s.metricDescriptors) || !Array.isArray(s.activityDetailMetrics)) return null;
