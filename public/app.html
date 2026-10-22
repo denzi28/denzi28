@@ -4,129 +4,182 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#0b0d0c">
+<meta name="theme-color" content="#0d1118">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Pulse</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b0d0c'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%234cd38a' stroke-width='4' stroke-dasharray='40 60' stroke-linecap='round' transform='rotate(-90 16 16)'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%230d1118'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23a5e3d0' stroke-width='3.5' stroke-dasharray='44 60' stroke-linecap='round' transform='rotate(-90 16 16)'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 <style>
 :root {
   color-scheme: dark;
-  --bg: #0b0d0c; --surface: #141816; --surface-2: #1c211e; --surface-3: #262c28; --line: #262c28;
-  --ink: #eef1ec; --ink-2: #b4bcb6; --muted: #7f8983;
-  --rec-green: #4cd38a; --rec-yellow: #f2c94c; --rec-red: #ef5a4f;
-  --strain: #4aa3ff; --sleep: #9b8cff;
-  --deep: #4a6fd6; --light: #7aa7e8; --rem: #b48cf0; --awake: #e8956b;
-  --z1: #5b6b63; --z2: #4aa3ff; --z3: #4cd38a; --z4: #f2c94c; --z5: #ef5a4f;
-  --radius: 18px;
-  --num: "Barlow Semi Condensed", Inter, system-ui, sans-serif;
+  --bg: #0d1118; --bg-2: #121826;
+  --surface: rgba(255,255,255,.045); --surface-solid: #161c28; --surface-2: rgba(255,255,255,.07); --surface-3: rgba(255,255,255,.11);
+  --line: rgba(255,255,255,.07);
+  --ink: #eef1f6; --ink-2: #b9c0cc; --muted: #828a99;
+  --glow: #5f8f86;
+  --optimal: #8fd9b6; --good: #a9c7ff; --fair: #f0cf8a; --low: #f1998a;
+  --readiness-a: #b6f0d8; --readiness-b: #6fb7c9;
+  --sleep-a: #c9b8ff; --sleep-b: #7d8cf2;
+  --activity-a: #ffd59a; --activity-b: #f59e72;
+  --rec-green: #8fd9b6; --rec-yellow: #f0cf8a; --rec-red: #f1998a;
+  --strain: #8fb8ff; --sleep: #a99bff;
+  --deep: #5f6ff0; --light: #93b6ff; --rem: #c7a2ff; --awake: #f2ad94;
+  --z1: #6b7385; --z2: #8fb8ff; --z3: #8fd9b6; --z4: #f0cf8a; --z5: #f1998a;
+  --radius: 22px;
+  --ease: cubic-bezier(.2, .85, .25, 1);
   --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; background: var(--bg); color: var(--ink); }
-body { font: 15px/1.45 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; min-height: 100vh; }
+html, body { margin: 0; color: var(--ink); background: var(--bg); }
+body {
+  font: 15px/1.5 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; min-height: 100vh;
+  background:
+    radial-gradient(120% 60% at 50% -10%, color-mix(in srgb, var(--glow) 38%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--bg-2), var(--bg) 60%);
+  background-attachment: fixed;
+  transition: --glow 1s;
+}
 button, select, input { font: inherit; color: inherit; }
 button { cursor: pointer; background: none; border: 0; padding: 0; }
 a { color: inherit; }
-.num { font-family: var(--num); letter-spacing: -.01em; }
 [hidden] { display: none !important; }
+.thin { font-weight: 300; letter-spacing: -.02em; }
 
 /* shell */
-.shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
-.side { position: sticky; top: 0; height: 100vh; padding: 24px 14px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
-.logo { display: flex; align-items: center; gap: 10px; font-family: var(--num); font-weight: 700; font-size: 22px; letter-spacing: .06em; padding: 0 10px 22px; }
-.nav-btn { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; color: var(--muted); font-weight: 500; width: 100%; text-align: left; }
-.nav-btn svg { width: 22px; height: 22px; flex: none; }
+.shell { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100vh; }
+.side { position: sticky; top: 0; height: 100vh; padding: 26px 14px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+.logo { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 18px; letter-spacing: .28em; padding: 0 12px 26px; }
+.nav-btn { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 14px; color: var(--muted); font-weight: 500; width: 100%; text-align: left; transition: background .25s var(--ease), color .25s; }
+.nav-btn svg { width: 21px; height: 21px; flex: none; }
 .nav-btn[aria-current="page"] { background: var(--surface-2); color: var(--ink); }
 .nav-btn:hover { color: var(--ink); }
-main { padding: 20px 24px 120px; max-width: 1040px; width: 100%; margin: 0 auto; min-width: 0; }
+.side .sep { height: 1px; background: var(--line); margin: 10px 12px; }
+main { padding: 22px 26px 120px; max-width: 1060px; width: 100%; margin: 0 auto; min-width: 0; }
 .tabbar { display: none; }
-@media (max-width: 760px) {
+@media (max-width: 820px) {
   .shell { grid-template-columns: 1fr; }
   .side { display: none; }
-  main { padding: calc(10px + env(safe-area-inset-top)) 14px calc(96px + env(safe-area-inset-bottom)); }
-  .tabbar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: rgba(11,13,12,.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid var(--line); padding: 6px 4px calc(8px + env(safe-area-inset-bottom)); }
-  .tabbar .nav-btn { flex-direction: column; gap: 3px; font-size: 10.5px; padding: 6px 2px; justify-content: center; align-items: center; background: none !important; text-align: center; }
-  .tabbar .nav-btn[aria-current="page"] { color: var(--ink); }
-  .tabbar .nav-btn[aria-current="page"] svg { color: var(--rec-green); }
+  main { padding: calc(12px + env(safe-area-inset-top)) 16px calc(100px + env(safe-area-inset-bottom)); }
+  .tabbar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 30; background: rgba(22,28,40,.78); backdrop-filter: blur(20px) saturate(140%); -webkit-backdrop-filter: blur(20px) saturate(140%); border: 1px solid var(--line); border-radius: 22px; padding: 6px; box-shadow: 0 10px 40px rgba(0,0,0,.35); }
+  .tabbar .nav-btn { flex-direction: column; gap: 2px; font-size: 10.5px; padding: 7px 2px; justify-content: center; align-items: center; text-align: center; border-radius: 16px; }
+  .tabbar .nav-btn[aria-current="page"] { background: var(--surface-2); }
 }
 
-/* top bar */
-.top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; min-height: 44px; }
-.daynav { display: flex; align-items: center; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px; }
-.daynav button { width: 34px; height: 34px; border-radius: 999px; display: grid; place-items: center; color: var(--ink-2); }
-.daynav button:disabled { opacity: .3; cursor: default; }
-.daynav button:not(:disabled):hover { background: var(--surface-2); }
-.daynav .label { min-width: 112px; text-align: center; font-weight: 600; font-size: 14px; }
-.page-title { margin: 0; font-family: var(--num); font-size: 28px; font-weight: 700; }
+/* top */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; min-height: 44px; }
+.greet { font-size: 13px; color: var(--muted); }
+.page-title { margin: 0; font-size: 26px; font-weight: 500; letter-spacing: -.01em; }
 .avatar { width: 38px; height: 38px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; font-weight: 600; font-size: 14px; overflow: hidden; flex: none; }
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
-.pill { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--rec-yellow); border: 1px solid rgba(242,201,76,.35); border-radius: 999px; padding: 3px 8px; }
-.icon-btn { width: 38px; height: 38px; border-radius: 999px; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line); color: var(--ink-2); }
+.pill { font-size: 10.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--fair); border: 1px solid color-mix(in srgb, var(--fair) 40%, transparent); border-radius: 999px; padding: 3px 9px; }
+.icon-btn { width: 38px; height: 38px; border-radius: 999px; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line); color: var(--ink-2); transition: background .2s; }
+.icon-btn:hover { background: var(--surface-2); }
 .icon-btn.spin svg { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.back { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-weight: 500; padding: 8px 12px 8px 8px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+
+/* week strip */
+.week { display: flex; gap: 6px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 6px 2px 10px; margin: 0 -2px 6px; scrollbar-width: none; }
+.week::-webkit-scrollbar { display: none; }
+.wday { flex: 0 0 auto; width: 46px; scroll-snap-align: end; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0 8px; border-radius: 16px; color: var(--muted); transition: background .25s var(--ease), color .25s; }
+.wday .l { font-size: 10.5px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; }
+.wday svg { width: 28px; height: 28px; }
+.wday .n { font-size: 12px; }
+.wday[aria-current="date"] { background: var(--surface-2); color: var(--ink); }
 
 /* banner */
-.banner { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; margin-bottom: 12px; font-size: 13px; }
-.banner .bar { height: 6px; background: var(--surface-3); border-radius: 99px; overflow: hidden; margin-top: 8px; }
-.banner .bar div { height: 100%; width: 5%; background: var(--rec-green); border-radius: 99px; transition: width .4s; }
-.banner.err { border-color: rgba(239,90,79,.5); }
+.banner { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; margin-bottom: 12px; font-size: 13px; }
+.banner .bar { height: 5px; background: var(--surface-3); border-radius: 99px; overflow: hidden; margin-top: 8px; }
+.banner .bar div { height: 100%; width: 5%; background: linear-gradient(90deg, var(--readiness-b), var(--readiness-a)); border-radius: 99px; transition: width .5s var(--ease); }
+.banner.err { border-color: color-mix(in srgb, var(--low) 50%, transparent); }
 
 /* cards */
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; min-width: 0; }
-.stack > * + * { margin-top: 12px; }
-.card-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 0 0 10px; }
-.card-title h3 { margin: 0; font-size: 12.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; min-width: 0; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.tap { cursor: pointer; transition: transform .25s var(--ease), background .25s; }
+.tap:hover { background: var(--surface-2); }
+.tap:active { transform: scale(.985); }
+.stack > * + * { margin-top: 14px; }
+.card-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 0 0 12px; }
+.card-title h3 { margin: 0; font-size: 13px; font-weight: 500; color: var(--ink-2); }
 .card-title span, .card-title a { font-size: 12px; color: var(--muted); text-align: right; }
-.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+.chev { color: var(--muted); font-size: 18px; line-height: 1; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
 .cols > .stack { min-width: 0; }
 @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
-.mt { margin-top: 12px; }
+.mt { margin-top: 14px; }
 .muted { color: var(--muted); }
 .small { font-size: 12px; }
+.section-label { font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 26px 4px 10px; }
 
-/* dials */
-.dials { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 18px 6px 14px; }
-.dial { display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; }
-.dial > button { display: block; width: 100%; max-width: 150px; }
-.dial svg { width: 100%; height: auto; overflow: visible; display: block; }
-.dial .cap { margin-top: 6px; font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
-.dial .sub { font-size: 11px; color: var(--muted); }
-.dial-val { font-family: var(--num); font-weight: 700; fill: var(--ink); }
-.dial-unit { font-size: 10px; fill: var(--muted); font-family: Inter, sans-serif; letter-spacing: .08em; }
+/* score hero */
+.hero { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 8px 0 4px; }
+.hero .ring-wrap { width: min(250px, 66vw); position: relative; }
+.hero .ring-wrap svg { width: 100%; height: auto; display: block; overflow: visible; }
+.hero .score { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; }
+.hero .score b { font-size: clamp(56px, 15vw, 76px); font-weight: 300; letter-spacing: -.04em; line-height: 1; }
+.hero .score span { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; padding: 5px 12px; border-radius: 999px; background: var(--surface-2); margin-top: 14px; }
+.status i { width: 7px; height: 7px; border-radius: 99px; display: inline-block; }
+.hero p.lead { color: var(--ink-2); max-width: 520px; margin: 14px auto 0; font-size: 15px; }
+
+/* score trio */
+.trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.trio .tap { padding: 16px 8px 14px; display: flex; flex-direction: column; align-items: center; text-align: center; border-radius: var(--radius); }
+.trio .rw { width: 100%; max-width: 116px; position: relative; }
+.trio .rw svg { width: 100%; height: auto; display: block; overflow: visible; }
+.trio .rw b { position: absolute; inset: 0; display: grid; place-items: center; font-size: clamp(26px, 7vw, 34px); font-weight: 300; letter-spacing: -.03em; }
+.trio .cap { margin-top: 8px; font-size: 13px; font-weight: 500; }
+.trio .sub { font-size: 11.5px; color: var(--muted); }
+
+/* contributors */
+.contrib { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 12px 4px; border-bottom: 1px solid var(--line); width: 100%; text-align: left; border-radius: 10px; transition: background .2s; }
+.contrib:last-child { border-bottom: 0; }
+.contrib:hover { background: var(--surface); }
+.contrib .name { font-size: 14.5px; }
+.contrib .val { font-size: 13px; color: var(--ink-2); display: flex; align-items: center; gap: 8px; }
+.contrib .track { grid-column: 1 / -1; height: 4px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
+.contrib .track div { height: 100%; border-radius: 99px; width: 0; transition: width .9s var(--ease); }
 
 /* coach */
 .coach { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; }
-.coach .badge { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-size: 20px; }
-.coach h4 { margin: 0 0 2px; font-size: 16px; }
+.coach .badge { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; font-size: 18px; }
+.coach h4 { margin: 0 0 3px; font-size: 16px; font-weight: 500; }
 .coach p { margin: 0; color: var(--ink-2); font-size: 14px; }
-.target-bar { position: relative; height: 10px; border-radius: 999px; background: var(--surface-3); margin: 8px 0 4px; }
-.target-bar .zone { position: absolute; top: 0; bottom: 0; border-radius: 999px; background: rgba(74,163,255,.35); border: 1px solid var(--strain); }
-.target-bar .now { position: absolute; top: -4px; width: 4px; height: 18px; border-radius: 2px; background: var(--ink); transform: translateX(-2px); }
-.target-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
 
-/* metric grid */
-.metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px; }
-.metric { background: var(--surface-2); border-radius: 14px; padding: 11px 12px; min-width: 0; }
-.metric .k { font-size: 12px; color: var(--muted); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.metric .v { font-family: var(--num); font-size: 26px; font-weight: 600; line-height: 1.15; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.metric .v small { font-family: Inter, sans-serif; font-size: 11.5px; color: var(--muted); font-weight: 500; margin-left: 3px; }
+/* tiles */
+.metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.metric { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 13px 14px 10px; min-width: 0; text-align: left; transition: transform .25s var(--ease), background .25s; }
+button.metric:hover { background: var(--surface-2); }
+button.metric:active { transform: scale(.98); }
+.metric .k { font-size: 12px; color: var(--muted); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; justify-content: space-between; gap: 6px; }
+.metric .v { font-size: 26px; font-weight: 300; letter-spacing: -.02em; line-height: 1.2; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.metric .v small { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 3px; letter-spacing: 0; }
 .metric .d { font-size: 11.5px; color: var(--ink-2); display: flex; align-items: center; gap: 4px; min-height: 16px; white-space: nowrap; overflow: hidden; }
-.metric .spark { height: 26px; margin-top: 4px; }
-.good { color: var(--rec-green); } .bad { color: var(--rec-red); } .flat { color: var(--muted); }
+.metric .spark { height: 26px; margin-top: 6px; }
+.good { color: var(--optimal); } .bad { color: var(--low); } .flat { color: var(--muted); }
+
+/* timeline */
+.timeline { position: relative; padding-left: 22px; }
+.timeline::before { content: ""; position: absolute; left: 6px; top: 6px; bottom: 6px; width: 2px; background: var(--line); border-radius: 2px; }
+.tl { position: relative; padding: 8px 0; display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; text-align: left; }
+.tl::before { content: ""; position: absolute; left: -20px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 99px; background: var(--dot, var(--muted)); box-shadow: 0 0 0 4px var(--bg-2); }
+.tl .time { font-size: 12px; color: var(--muted); }
+.tl .t { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tl .s { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tl .r { font-size: 13px; color: var(--ink-2); }
 
 /* lists */
-.row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); width: 100%; text-align: left; }
+.row { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--line); width: 100%; text-align: left; }
 .row:last-child { border-bottom: 0; }
-button.row:hover .t { text-decoration: underline; }
-.row .ic { width: 40px; height: 40px; border-radius: 12px; background: var(--surface-2); display: grid; place-items: center; font-size: 18px; }
-.row .t { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+button.row:hover .t { text-decoration: underline; text-underline-offset: 3px; }
+.row .ic { width: 42px; height: 42px; border-radius: 14px; background: var(--surface-2); display: grid; place-items: center; font-size: 18px; }
+.row .t { font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row .s { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.row .chip { font-family: var(--num); font-weight: 700; font-size: 20px; color: var(--strain); text-align: right; }
-.row .chip small { display: block; font-family: Inter, sans-serif; font-size: 10px; font-weight: 500; color: var(--muted); letter-spacing: .06em; }
+.row .chip { font-weight: 300; font-size: 22px; color: var(--strain); text-align: right; letter-spacing: -.02em; }
+.row .chip small { display: block; font-size: 9.5px; font-weight: 500; color: var(--muted); letter-spacing: .1em; }
 .empty { color: var(--muted); font-size: 13px; padding: 14px 0; text-align: center; }
 
 /* charts */
@@ -137,56 +190,58 @@ button.row:hover .t { text-decoration: underline; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 .legend i.ln { height: 3px; width: 14px; border-radius: 2px; }
-#tip { position: fixed; z-index: 50; pointer-events: none; background: #f4f6f2; color: #111; padding: 8px 10px; border-radius: 10px; font-size: 12px; line-height: 1.5; box-shadow: 0 8px 28px rgba(0,0,0,.45); max-width: 260px; }
+#tip { position: fixed; z-index: 80; pointer-events: none; background: rgba(245,247,252,.97); color: #111; padding: 8px 10px; border-radius: 12px; font-size: 12px; line-height: 1.5; box-shadow: 0 10px 30px rgba(0,0,0,.45); max-width: 260px; }
 #tip .r { display: flex; align-items: center; gap: 6px; }
 #tip i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
 
 /* controls */
 .seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; flex-wrap: wrap; }
-.seg button { padding: 5px 12px; border-radius: 999px; font-size: 13px; color: var(--muted); }
+.seg button { padding: 6px 13px; border-radius: 999px; font-size: 13px; color: var(--muted); transition: background .25s var(--ease), color .2s; }
 .seg button[aria-pressed="true"] { background: var(--surface-3); color: var(--ink); }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
-.chips button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 11px; font-size: 12.5px; color: var(--ink-2); }
+.chips button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 12.5px; color: var(--ink-2); transition: all .2s; }
 .chips button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-.field { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; color: var(--ink); min-width: 0; max-width: 100%; }
-select.field { appearance: none; -webkit-appearance: none; padding-right: 28px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237f8983' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+.field { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 9px 11px; color: var(--ink); min-width: 0; max-width: 100%; }
+select.field { appearance: none; -webkit-appearance: none; padding-right: 30px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23828a99' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; }
+select.field option { background: #161c28; }
 .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
 .toolbar .grow { flex: 1 1 160px; }
-.pill-btn { border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 500; text-decoration: none; display: inline-block; }
-.pill-btn:hover { border-color: var(--muted); }
-.pill-btn.primary { background: var(--rec-green); color: #08130d; border-color: transparent; font-weight: 600; }
+.pill-btn { border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 8px 15px; font-size: 13px; font-weight: 500; text-decoration: none; display: inline-block; transition: background .2s; }
+.pill-btn:hover { background: var(--surface-3); }
+.pill-btn.primary { background: var(--ink); color: var(--bg); border-color: transparent; font-weight: 600; }
 .pill-btn:disabled { opacity: .5; cursor: default; }
 
 /* sleep */
-.stages { display: flex; height: 18px; border-radius: 6px; overflow: hidden; gap: 2px; margin: 10px 0; }
+.stages { display: flex; height: 16px; border-radius: 8px; overflow: hidden; gap: 2px; margin: 10px 0; }
 .stage-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .stage-list div { font-size: 12px; color: var(--muted); }
-.stage-list b { display: block; font-family: var(--num); font-size: 20px; color: var(--ink); font-weight: 600; }
+.stage-list b { display: block; font-size: 20px; color: var(--ink); font-weight: 300; }
 .stage-list i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
 .big-stat { display: flex; align-items: center; gap: 18px; }
 .big-stat .dial { width: 130px; flex: none; }
 .big-stat .facts { display: grid; gap: 6px; flex: 1; min-width: 0; }
-@media (max-width: 460px) { .big-stat { flex-direction: column; align-items: stretch; } .big-stat .dial { margin: 0 auto; } }
-.fact-line { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
-.fact-line:last-child { border-bottom: 0; padding-bottom: 0; }
+.fact-line { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; border-bottom: 1px solid var(--line); padding: 7px 0; }
+.fact-line:last-child { border-bottom: 0; }
 .fact-line span { color: var(--muted); }
-.fact-line b { font-weight: 600; text-align: right; }
+.fact-line b { font-weight: 500; text-align: right; }
+button.fact-line { width: 100%; text-align: left; }
+button.fact-line:hover b { text-decoration: underline; text-underline-offset: 3px; }
 .score-row { display: grid; grid-template-columns: minmax(0, 1fr) 90px 44px; gap: 10px; align-items: center; font-size: 13px; padding: 5px 0; }
-.score-row .bar { height: 8px; background: var(--surface-3); border-radius: 99px; overflow: hidden; }
+.score-row .bar { height: 6px; background: var(--surface-3); border-radius: 99px; overflow: hidden; }
 .score-row .bar div { height: 100%; border-radius: 99px; background: var(--sleep); }
-.score-row b { text-align: right; font-weight: 600; }
+.score-row b { text-align: right; font-weight: 500; }
 
 /* zones */
-.zone-row { display: grid; grid-template-columns: 64px minmax(0, 1fr) 84px; gap: 10px; align-items: center; font-size: 12px; margin: 6px 0; }
-.zone-row .bar { height: 10px; background: var(--surface-3); border-radius: 999px; overflow: hidden; }
+.zone-row { display: grid; grid-template-columns: 64px minmax(0, 1fr) 84px; gap: 10px; align-items: center; font-size: 12px; margin: 7px 0; }
+.zone-row .bar { height: 8px; background: var(--surface-3); border-radius: 999px; overflow: hidden; }
 .zone-row .bar div { height: 100%; border-radius: 999px; }
 .zone-row .v { text-align: right; color: var(--ink-2); }
 
 /* tables */
-.table-wrap { overflow-x: auto; margin: 0 -16px; padding: 0 16px; }
+.table-wrap { overflow-x: auto; margin: 0 -18px; padding: 0 18px; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th { text-align: left; font-weight: 500; color: var(--muted); font-size: 11.5px; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-td { padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 td.n, th.n { text-align: right; }
 tr:last-child td { border-bottom: 0; }
 .kv td:first-child { color: var(--ink-2); white-space: normal; word-break: break-word; width: 55%; padding-left: 0; }
@@ -194,7 +249,15 @@ tr:last-child td { border-bottom: 0; }
 .kv .path { display: block; font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
 .kv .raw { display: block; font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
 details > summary { cursor: pointer; color: var(--ink-2); font-size: 13px; padding: 2px 0; }
-.ok { color: var(--rec-green); } .no { color: var(--muted); }
+.ok { color: var(--optimal); } .no { color: var(--muted); }
+
+/* explore */
+.explore { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.explore .card { display: flex; gap: 14px; align-items: center; text-align: left; }
+.explore .ico { width: 46px; height: 46px; border-radius: 16px; background: var(--surface-2); display: grid; place-items: center; flex: none; }
+.explore .ico svg { width: 22px; height: 22px; }
+.explore b { display: block; font-weight: 500; }
+.explore span { font-size: 12.5px; color: var(--muted); }
 
 /* profile */
 .profile-head { display: flex; align-items: center; gap: 14px; }
@@ -202,27 +265,72 @@ details > summary { cursor: pointer; color: var(--ink-2); font-size: 13px; paddi
 .setting { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 .setting:last-child { border-bottom: 0; }
 .setting > span { color: var(--muted); font-size: 13px; text-align: right; }
-.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 99px; background: var(--rec-green); margin-right: 6px; }
-.disclaimer { font-size: 11.5px; color: var(--muted); margin-top: 18px; line-height: 1.5; }
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 99px; background: var(--optimal); margin-right: 6px; }
+.disclaimer { font-size: 11.5px; color: var(--muted); margin-top: 18px; line-height: 1.6; }
+
+/* sheet */
+#scrim { position: fixed; inset: 0; z-index: 60; background: rgba(4,6,10,.55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); opacity: 0; pointer-events: none; transition: opacity .35s var(--ease); }
+#scrim.open { opacity: 1; pointer-events: auto; }
+#sheet { position: fixed; z-index: 70; left: 0; right: 0; bottom: 0; max-height: 90vh; display: flex; flex-direction: column; background: linear-gradient(180deg, #1a2130, #121722); border: 1px solid var(--line); border-bottom: 0; border-radius: 28px 28px 0 0; box-shadow: 0 -20px 60px rgba(0,0,0,.45); transform: translateY(105%); visibility: hidden; transition: transform .45s var(--ease), visibility 0s linear .45s; will-change: transform; }
+#sheet.open { transform: translateY(0); visibility: visible; transition: transform .45s var(--ease); }
+#sheet.dragging { transition: none; }
+#sheet .grab { padding: 10px 0 4px; display: grid; place-items: center; cursor: grab; touch-action: none; }
+#sheet .grab i { width: 40px; height: 5px; border-radius: 99px; background: var(--surface-3); }
+#sheet .sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 20px 8px; touch-action: none; }
+#sheet .sheet-head h2 { margin: 0; font-size: 17px; font-weight: 500; }
+#sheet .sheet-body { overflow-y: auto; padding: 4px 20px calc(28px + env(safe-area-inset-bottom)); overscroll-behavior: contain; }
+@media (min-width: 900px) {
+  #sheet { left: auto; top: 12px; bottom: 12px; right: 12px; width: 460px; max-height: none; border-radius: 28px; border: 1px solid var(--line); transform: translateX(110%); }
+  #sheet.open { transform: translateX(0); }
+  #sheet .grab { display: none; }
+  #sheet .sheet-head { padding-top: 18px; }
+}
+.sh-hero { display: flex; align-items: flex-end; gap: 12px; margin: 6px 0 4px; }
+.sh-hero b { font-size: 54px; font-weight: 300; letter-spacing: -.04em; line-height: 1; }
+.sh-hero small { font-size: 15px; color: var(--muted); margin-bottom: 6px; }
+.sh-sub { color: var(--ink-2); font-size: 13.5px; }
+.sh-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 16px 0; }
+.sh-stats div { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 9px 11px; }
+.sh-stats span { display: block; font-size: 11px; color: var(--muted); }
+.sh-stats b { font-size: 17px; font-weight: 400; }
+.sh-sec { margin-top: 20px; }
+.sh-sec h4 { margin: 0 0 6px; font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.sh-sec p { margin: 0 0 8px; color: var(--ink-2); font-size: 14.5px; line-height: 1.6; }
+.sh-sec ul { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 14.5px; line-height: 1.6; }
+.sh-sec li { margin: 2px 0; }
+.sh-note { font-size: 11.5px; color: var(--muted); margin-top: 18px; }
 
 /* login */
 .center { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
-.login { width: min(380px, 100%); text-align: center; }
-.login input { width: 100%; padding: 13px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); margin: 14px 0 10px; }
-.login .err { color: var(--rec-red); font-size: 13px; min-height: 18px; }
+.login { width: min(380px, 100%); text-align: center; padding: 28px 22px; }
+.login input { width: 100%; padding: 13px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); margin: 16px 0 10px; }
+.login .err { color: var(--low); font-size: 13px; min-height: 18px; }
 
-.view { animation: fade .18s ease; }
-@keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+/* motion */
+.view { animation: rise .45s var(--ease) both; }
+.view > * { animation: rise .5s var(--ease) both; }
+.view > *:nth-child(2) { animation-delay: .04s; } .view > *:nth-child(3) { animation-delay: .08s; } .view > *:nth-child(4) { animation-delay: .12s; } .view > *:nth-child(5) { animation-delay: .16s; } .view > *:nth-child(n+6) { animation-delay: .2s; }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.arc { transition: stroke-dashoffset 1.1s var(--ease); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
 </style>
 </head>
 <body>
 <div id="tip" hidden></div>
+<div id="scrim"></div>
+<div id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" aria-hidden="true">
+  <div class="grab"><i></i></div>
+  <div class="sheet-head"><h2 id="sheet-title"></h2><button class="icon-btn" id="sheet-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="sheet-body" id="sheet-body"></div>
+</div>
 
 <div id="login" class="center" hidden>
   <form class="card login" id="login-form">
-    <svg viewBox="0 0 60 60" width="60" height="60" aria-hidden="true"><circle cx="30" cy="30" r="22" fill="none" stroke="var(--surface-3)" stroke-width="7"/><circle cx="30" cy="30" r="22" fill="none" stroke="var(--rec-green)" stroke-width="7" stroke-linecap="round" stroke-dasharray="95 200" transform="rotate(-90 30 30)"/></svg>
-    <h1 class="num" style="margin:8px 0 0;font-size:30px;letter-spacing:.06em">PULSE</h1>
-    <p class="muted" style="margin:4px 0 0">Recovery, strain and sleep from your Garmin.</p>
+    <svg viewBox="0 0 60 60" width="64" height="64" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b6f0d8"/><stop offset="1" stop-color="#6fb7c9"/></linearGradient></defs><circle cx="30" cy="30" r="22" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="5"/><circle cx="30" cy="30" r="22" fill="none" stroke="url(#lg)" stroke-width="5" stroke-linecap="round" stroke-dasharray="105 200" transform="rotate(-90 30 30)"/></svg>
+    <h1 style="margin:10px 0 0;font-size:22px;font-weight:600;letter-spacing:.3em">PULSE</h1>
+    <p class="muted" style="margin:6px 0 0">Readiness, sleep and activity from your Garmin.</p>
     <input id="pw" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password" required>
     <div class="err" id="login-err"></div>
     <button class="pill-btn primary" style="width:100%;padding:12px" type="submit">Log in</button>
@@ -231,7 +339,7 @@ details > summary { cursor: pointer; color: var(--ink-2); font-size: 13px; paddi
 
 <div id="app" class="shell" hidden>
   <nav class="side" aria-label="Menu">
-    <div class="logo"><svg viewBox="0 0 28 28" width="28" height="28" aria-hidden="true"><circle cx="14" cy="14" r="10" fill="none" stroke="var(--surface-3)" stroke-width="4"/><circle cx="14" cy="14" r="10" fill="none" stroke="var(--rec-green)" stroke-width="4" stroke-linecap="round" stroke-dasharray="44 70" transform="rotate(-90 14 14)"/></svg>PULSE</div>
+    <div class="logo"><svg viewBox="0 0 28 28" width="26" height="26" aria-hidden="true"><defs><linearGradient id="lg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b6f0d8"/><stop offset="1" stop-color="#6fb7c9"/></linearGradient></defs><circle cx="14" cy="14" r="10" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="3.5"/><circle cx="14" cy="14" r="10" fill="none" stroke="url(#lg2)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="46 70" transform="rotate(-90 14 14)"/></svg>PULSE</div>
     <div id="side-nav"></div>
   </nav>
   <main>
@@ -239,10 +347,11 @@ details > summary { cursor: pointer; color: var(--ink-2); font-size: 13px; paddi
       <div id="top-left"></div>
       <div style="display:flex;align-items:center;gap:8px">
         <span class="pill" id="demo-pill" hidden>Demo</span>
-        <button class="icon-btn" id="sync-btn" title="Sync with Garmin" aria-label="Sync with Garmin"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button>
+        <button class="icon-btn" id="sync-btn" title="Sync with Garmin" aria-label="Sync with Garmin"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button>
         <button class="avatar" id="avatar" aria-label="Profile">·</button>
       </div>
     </div>
+    <div id="weekstrip"></div>
     <div id="banner"></div>
     <div id="view"></div>
   </main>
@@ -338,65 +447,7 @@ addEventListener('scroll', hideTip, { passive: true });
 const tipRow = (c, l, v) => `<div class="r">${c ? `<i style="background:${c}"></i>` : ''}${esc(l)}: <b>${esc(v)}</b></div>`;
 function hover(node, html) { const show = (ev) => showTip(typeof html === 'function' ? html() : html, ev.clientX, ev.clientY); node.addEventListener('pointermove', show); node.addEventListener('pointerdown', show); node.addEventListener('pointerleave', hideTip); }
 
-// ===================== scores (our own estimates) =====================
-// Recovery: last night's HRV and resting HR against your own 30-day normal, plus sleep.
-// Strain: Garmin training load + daily movement, squashed onto 0–21.
-// Sleep performance: hours asleep vs. need (base + yesterday's strain + recent debt).
-const STRAIN_K = 260;
-const strainFromLoad = (load, steps) => round(21 * (1 - Math.exp(-((load || 0) + ((steps || 0) / 10000) * 20) / STRAIN_K)), 1);
-const recColor = (r) => (r == null ? css('--muted') : r >= 67 ? css('--rec-green') : r >= 34 ? css('--rec-yellow') : css('--rec-red'));
-const recWord = (r) => (r >= 67 ? 'Green' : r >= 34 ? 'Yellow' : 'Red');
-
-function buildModel(D) {
-  const acts = (D.activities || []).map((a) => ({ ...a, t: parseLocal(a.start) })).sort((a, b) => a.t - b.t);
-  const daily = D.daily || {}, sleep = D.sleep || {}, hrv = D.hrv || {}, weight = D.weight || {};
-  const keys = [...new Set([...Object.keys(daily), ...Object.keys(sleep), ...Object.keys(hrv), ...acts.map((a) => dayKey(a.t))])].sort();
-  const actsByDay = new Map();
-  for (const a of acts) { const k = dayKey(a.t); if (!actsByDay.has(k)) actsByDay.set(k, []); actsByDay.get(k).push(a); }
-  const days = keys.map((k) => {
-    const list = actsByDay.get(k) || [], d = daily[k] || {};
-    const load = sum(list.map((a) => a.load));
-    return { key: k, t: parseDay(k), acts: list, d, sleep: sleep[k] || null, hrv: hrv[k] || null, weight: weight[k] ?? null, load, strain: strainFromLoad(load, d.steps) };
-  });
-  days.forEach((day, i) => {
-    const prev = days.slice(Math.max(0, i - 30), i);
-    const hrvBase = prev.map((p) => p.hrv?.last), rhrBase = prev.map((p) => p.d.rhr);
-    const debt = sum(days.slice(Math.max(0, i - 3), i).map((p) => (p.asleep ? Math.max(0, p.sleepNeed - p.asleep) : 0))) / 3;
-    day.sleepNeed = 7.5 * 3600 + Math.max(0, (days[i - 1]?.strain || 0) - 10) * 180 + 0.3 * debt;
-    day.asleep = day.sleep ? ((day.sleep.deep || 0) + (day.sleep.light || 0) + (day.sleep.rem || 0)) || day.sleep.total : null;
-    day.sleepPerf = day.asleep ? clamp(Math.round((day.asleep / day.sleepNeed) * 100), 1, 100) : null;
-    day.hrvBase = avg(hrvBase); day.rhrBase = avg(rhrBase);
-    const hz = day.hrv?.last && day.hrvBase ? (day.hrv.last - day.hrvBase) / (sd(hrvBase) || day.hrvBase * 0.12) : null;
-    const rz = day.d.rhr && day.rhrBase ? (day.rhrBase - day.d.rhr) / (sd(rhrBase) || 2.5) : null;
-    const pz = day.sleepPerf != null ? (day.sleepPerf - 85) / 10 : null;
-    const parts = [[hz, 0.55], [rz, 0.25], [pz, 0.2]].filter(([v]) => v != null);
-    if (hz != null || rz != null) {
-      const score = sum(parts.map(([v, w]) => clamp(v, -3, 3) * w)) / sum(parts.map((p) => p[1]));
-      day.recovery = clamp(Math.round(100 / (1 + Math.exp(-(1.25 * score + 0.35)))), 1, 99);
-    } else day.recovery = null;
-  });
-  return { days, acts, byKey: new Map(days.map((d) => [d.key, d])), byId: new Map(acts.map((a) => [String(a.id), a])), raw: D };
-}
-
-function coachFor(day) {
-  const r = day.recovery, gp = GOAL.seconds / 5;
-  if (r == null) return { icon: '•', color: css('--muted'), title: 'Waiting for data', text: 'Sleep with your watch on and your recovery will be ready in the morning.', range: [8, 14] };
-  if (r >= 67) return { icon: '↑', color: css('--rec-green'), title: 'Ready to push', text: `A good day for quality work toward your 5K: 5 × 1 km at ${fmtClock(gp - 12)}–${fmtClock(gp - 6)} /km with 2 min easy jog between.`, range: [14, 18] };
-  if (r >= 34) return { icon: '→', color: css('--rec-yellow'), title: 'Steady day', text: `Easy 30–40 min run at ${fmtClock(gp + 50)} /km or slower. You should be able to hold a conversation.`, range: [10, 14] };
-  return { icon: '↓', color: css('--rec-red'), title: 'Recover today', text: 'Rest, or a 20–30 min walk and some mobility. Get to bed early; tomorrow will be better.', range: [0, 10] };
-}
-
 // ===================== chart primitives =====================
-function ring(size, value, max, color, { center, unit, thick = 10 } = {}) {
-  const r = (size - thick) / 2, c = 2 * Math.PI * r, frac = value == null ? 0 : clamp(value / max, 0, 1);
-  const svg = el('svg', { viewBox: `0 0 ${size} ${size}`, role: 'img' });
-  el('circle', { cx: size / 2, cy: size / 2, r, fill: 'none', stroke: css('--surface-3'), 'stroke-width': thick }, svg);
-  el('circle', { cx: size / 2, cy: size / 2, r, fill: 'none', stroke: color, 'stroke-width': thick, 'stroke-linecap': 'round', 'stroke-dasharray': `${c * frac} ${c}`, transform: `rotate(-90 ${size / 2} ${size / 2})` }, svg);
-  const t = el('text', { x: size / 2, y: size / 2 + (unit ? 4 : 10), 'text-anchor': 'middle', class: 'dial-val', 'font-size': size * 0.27 }, svg);
-  t.textContent = center ?? (value == null ? '–' : value);
-  if (unit) { const u = el('text', { x: size / 2, y: size / 2 + size * 0.2, 'text-anchor': 'middle', class: 'dial-unit' }, svg); u.textContent = unit; }
-  return svg;
-}
 function niceTicks(lo, hi, n = 3) {
   const span = hi - lo || 1, step0 = span / n, mag = 10 ** Math.floor(Math.log10(step0));
   const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= step0) || mag * 10;
@@ -496,57 +547,650 @@ async function api(path, opts) {
   return { status: res.status, body };
 }
 
-// ===================== app state =====================
+
+// ===================== scores (our own estimates) =====================
+// Readiness, Activity and every contributor score are Pulse's own 0–100 estimates built from
+// Garmin data. The Sleep score is Garmin's own when the watch provides one.
+const STRAIN_K = 260;
+const strainFromLoad = (load, steps) => round(21 * (1 - Math.exp(-((load || 0) + ((steps || 0) / 10000) * 20) / STRAIN_K)), 1);
+const LABEL = (s) => (s == null ? 'No data' : s >= 85 ? 'Optimal' : s >= 70 ? 'Good' : s >= 60 ? 'Fair' : 'Pay attention');
+const scoreVar = (s) => (s == null ? '--muted' : s >= 85 ? '--optimal' : s >= 70 ? '--good' : s >= 60 ? '--fair' : '--low');
+const scoreColor = (s) => css(scoreVar(s));
+const recColor = scoreColor;
+const NEED = 7.5 * 3600;
+
+function balanceScore(r) {
+  if (r == null || !isFinite(r)) return null;
+  if (r > 1.3) return clamp(Math.round(90 - (r - 1.3) * 120), 10, 90);
+  if (r < 0.8) return clamp(Math.round(85 - (0.8 - r) * 80), 40, 85);
+  return Math.round(95 - Math.abs(r - 1.05) * 20);
+}
+function prevDayScore(s) {
+  if (s == null) return null;
+  if (s > 14) return clamp(Math.round(95 - (s - 14) * 9), 20, 95);
+  return s < 3 ? 85 : 95;
+}
+// Garmin's "local" sleep timestamps are local wall-clock time stored as if it were UTC.
+const wall = (ts) => { const d = new Date(ts); return d.getUTCHours() + d.getUTCMinutes() / 60; };
+const wallClock = (ts) => { const d = new Date(ts); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`; };
+
+const R_WEIGHTS = { hrv: 0.25, rhr: 0.2, sleep: 0.2, sleepBal: 0.1, prevDay: 0.1, trainBal: 0.1, bb: 0.05 };
+
+function buildModel(D) {
+  const acts = (D.activities || []).map((a) => ({ ...a, t: parseLocal(a.start) })).sort((a, b) => a.t - b.t);
+  const daily = D.daily || {}, sleep = D.sleep || {}, hrv = D.hrv || {}, weight = D.weight || {};
+  const keys = [...new Set([...Object.keys(daily), ...Object.keys(sleep), ...Object.keys(hrv), ...acts.map((a) => dayKey(a.t))])].sort();
+  const actsByDay = new Map();
+  for (const a of acts) { const k = dayKey(a.t); if (!actsByDay.has(k)) actsByDay.set(k, []); actsByDay.get(k).push(a); }
+  const days = keys.map((k) => {
+    const list = actsByDay.get(k) || [], d = daily[k] || {};
+    const load = sum(list.map((a) => a.load));
+    return { key: k, t: parseDay(k), acts: list, d, sleep: sleep[k] || null, hrv: hrv[k] || null, weight: weight[k] ?? null, load, strain: strainFromLoad(load, d.steps) };
+  });
+  const byKey = new Map(days.map((d) => [d.key, d]));
+  const loadBy = new Map(days.map((d) => [d.key, d.load]));
+  const loadBack = (t, n) => { let s = 0; for (let i = 0; i < n; i++) s += loadBy.get(dayKey(t - i * DAY)) || 0; return s; };
+  const ratioAt = (t) => { const chronic = loadBack(t, 28) / 4; return chronic > 0 ? loadBack(t, 7) / chronic : null; };
+  const within = (t, n) => days.filter((x) => x.t > t - n * DAY && x.t <= t);
+
+  days.forEach((day, i) => {
+    const prev = days.slice(Math.max(0, i - 30), i);
+    const hrvBase = prev.map((p) => p.hrv?.last), rhrBase = prev.map((p) => p.d.rhr);
+    const debt = sum(days.slice(Math.max(0, i - 3), i).map((p) => (p.asleep ? Math.max(0, p.sleepNeed - p.asleep) : 0))) / 3;
+    const yesterday = byKey.get(dayKey(day.t - DAY));
+    day.sleepNeed = NEED + Math.max(0, (yesterday?.strain || 0) - 10) * 180 + 0.3 * debt;
+    day.asleep = day.sleep ? ((day.sleep.deep || 0) + (day.sleep.light || 0) + (day.sleep.rem || 0)) || day.sleep.total : null;
+    day.sleepPerf = day.asleep ? clamp(Math.round((day.asleep / day.sleepNeed) * 100), 1, 100) : null;
+    day.hrvBase = avg(hrvBase); day.rhrBase = avg(rhrBase);
+    const hz = day.hrv?.last && day.hrvBase ? (day.hrv.last - day.hrvBase) / (sd(hrvBase) || day.hrvBase * 0.12) : null;
+    const rDiff = day.d.rhr && day.rhrBase ? day.d.rhr - day.rhrBase : null;
+    const recentSleep = within(day.t, 14).map((x) => x.asleep).filter(Boolean);
+    day.sleepAvg14 = avg(recentSleep);
+
+    // ---- sleep
+    if (day.sleep && day.asleep) {
+      const s = day.sleep, awake = s.awake || 0;
+      const eff = day.asleep / (day.asleep + awake);
+      let timing = null;
+      if (s.start && s.end) {
+        let mid = (wall(s.start) + (s.end - s.start) / 3600e3 / 2) % 24;
+        if (mid > 12) mid -= 24;
+        const off = mid < 0 ? -mid : mid > 3.5 ? mid - 3.5 : 0;
+        timing = clamp(Math.round(100 - off * 20), 10, 100);
+        day.sleepMid = mid;
+      }
+      day.sc = {
+        total: clamp(Math.round((day.asleep / day.sleepNeed) * 100), 1, 100),
+        eff: clamp(Math.round(((eff - 0.7) / 0.25) * 100), 5, 100),
+        rest: clamp(Math.round(100 - Math.max(0, awake / 60 - 5) * 2), 5, 100),
+        rem: s.rem != null ? clamp(Math.round((s.rem / day.asleep / 0.22) * 100), 5, 100) : null,
+        deep: s.deep != null ? clamp(Math.round((s.deep / day.asleep / 0.17) * 100), 5, 100) : null,
+        timing,
+      };
+      day.sleepEff = eff;
+      day.sleepScore = s.score ?? Math.round(avg(Object.values(day.sc)));
+      day.sleepScoreSource = s.score != null ? 'Garmin' : 'Pulse';
+    } else { day.sc = null; day.sleepScore = null; }
+
+    // ---- readiness
+    day.rc = {
+      hrv: hz != null ? clamp(Math.round(78 + 14 * hz), 5, 100) : null,
+      rhr: rDiff != null ? clamp(Math.round(85 - 7.5 * rDiff), 5, 100) : null,
+      sleep: day.sleepScore,
+      sleepBal: day.sleepAvg14 ? clamp(Math.round(100 - (Math.max(0, NEED - day.sleepAvg14) / 3600) * 25), 10, 100) : null,
+      prevDay: prevDayScore(yesterday?.strain),
+      trainBal: balanceScore(ratioAt(day.t - DAY)),
+      bb: day.d.bbMax ?? null,
+    };
+    const parts = Object.entries(day.rc).filter(([, v]) => v != null);
+    day.readiness = day.rc.hrv != null || day.rc.rhr != null ? Math.round(sum(parts.map(([k, v]) => v * R_WEIGHTS[k])) / sum(parts.map(([k]) => R_WEIGHTS[k]))) : null;
+    day.recovery = day.readiness; // older views read this name
+    day.hz = hz; day.rDiff = rDiff;
+
+    // ---- activity
+    const goal = day.d.stepGoal || 8000;
+    const im = (day.d.imMod || 0) + 2 * (day.d.imVig || 0);
+    const week = within(day.t, 7);
+    const sessions = week.reduce((n, x) => n + x.acts.filter((a) => (a.load || 0) >= 20 || (a.dur || 0) >= 1200).length, 0);
+    const restDays = week.filter((x) => (x.strain || 0) < 6).length;
+    day.trainRatio = ratioAt(day.t);
+    day.ac = {
+      stay: day.d.steps != null ? clamp(Math.round((day.d.steps / goal) * 100), 0, 100) : null,
+      targets: day.d.imMod != null || day.d.imVig != null ? clamp(Math.round((im / 30) * 100), 0, 100) : null,
+      freq: clamp(Math.round((sessions / 4) * 100), 10, 100),
+      volume: balanceScore(day.trainRatio),
+      recovery: restDays >= 1 ? 100 : 55,
+    };
+    day.sessions7 = sessions; day.restDays7 = restDays; day.im = im;
+    const av = Object.values(day.ac).filter((v) => v != null);
+    day.activityScore = day.d.steps != null || day.acts.length ? Math.round(avg(av)) : null;
+  });
+  return { days, acts, byKey, byId: new Map(acts.map((a) => [String(a.id), a])), raw: D };
+}
+
+function coachFor(day) {
+  const r = day.readiness, gp = GOAL.seconds / 5;
+  if (r == null) return { icon: '•', color: css('--muted'), title: 'Waiting for your data', text: 'Sleep with your watch on and your readiness will be ready in the morning.' };
+  if (r >= 80) return { icon: '↑', color: css('--optimal'), title: 'A good day to push', text: `Your body is well recovered. For your 5K: 5 × 1 km at ${fmtClock(gp - 12)}–${fmtClock(gp - 6)} /km with 2 min easy jogging between.` };
+  if (r >= 65) return { icon: '→', color: css('--good'), title: 'Keep it steady', text: `Recovered, but not fully. An easy 30–40 min run at ${fmtClock(gp + 50)} /km or slower builds fitness without digging a hole.` };
+  return { icon: '↓', color: css('--low'), title: 'Take it easy today', text: 'Signs of strain are showing. Rest, walk, stretch, and get to bed early — hard training now would cost more than it gives.' };
+}
+
+// ===================== rings & motion =====================
+let ringN = 0;
+function ring(size, value, max, stops, { thick = 10, track = 'rgba(255,255,255,.08)' } = {}) {
+  const id = `g${++ringN}`, r = (size - thick) / 2, c = 2 * Math.PI * r, frac = value == null ? 0 : clamp(value / max, 0, 1);
+  const svg = el('svg', { viewBox: `0 0 ${size} ${size}`, role: 'img' });
+  const defs = el('defs', {}, svg), g = el('linearGradient', { id, x1: 0, y1: 0, x2: 1, y2: 1 }, defs);
+  el('stop', { offset: 0, 'stop-color': stops[0] }, g); el('stop', { offset: 1, 'stop-color': stops[1] }, g);
+  el('circle', { cx: size / 2, cy: size / 2, r, fill: 'none', stroke: track, 'stroke-width': thick }, svg);
+  const arc = el('circle', { class: 'arc', cx: size / 2, cy: size / 2, r, fill: 'none', stroke: `url(#${id})`, 'stroke-width': thick, 'stroke-linecap': 'round', 'stroke-dasharray': c, 'stroke-dashoffset': c, transform: `rotate(-90 ${size / 2} ${size / 2})` }, svg);
+  if (frac > 0) requestAnimationFrame(() => requestAnimationFrame(() => arc.setAttribute('stroke-dashoffset', c * (1 - frac))));
+  return svg;
+}
+const STOPS = { readiness: ['--readiness-a', '--readiness-b'], sleep: ['--sleep-a', '--sleep-b'], activity: ['--activity-a', '--activity-b'] };
+const stops = (k) => STOPS[k].map(css);
+function countUp(node, to, dp = 0) {
+  if (to == null || !isFinite(to) || matchMedia('(prefers-reduced-motion: reduce)').matches) { node.textContent = to == null ? '–' : to.toFixed(dp); return; }
+  const t0 = performance.now(), dur = 900;
+  const step = (now) => { const p = Math.min(1, (now - t0) / dur), e = 1 - (1 - p) ** 3; node.textContent = (to * e).toFixed(dp); if (p < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+function setGlow(score) { document.documentElement.style.setProperty('--glow', score == null ? '#4a5568' : scoreColor(score)); }
+
+// ===================== metric registry =====================
+const recent = (key, n) => { const i = M.days.findIndex((d) => d.key === key); return M.days.slice(Math.max(0, i - n + 1), i + 1); };
+const S = (fn) => (day) => recent(day.key, 30).map((d) => [d.t, fn(d)]).filter((p) => p[1] != null && isFinite(p[1]));
+const fmtBpm = (v) => `${round(v)} bpm`;
+const signed = (v, dp = 0, u = '') => (v == null ? '–' : `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(dp)}${u}`);
+const lastVo2 = (day) => { const a = M.acts.filter((x) => x.vo2 && x.t <= day.t + DAY); return a.length ? a[a.length - 1] : null; };
+
+const scoreMetric = (title, get, extra) => ({ title, kind: 'score', unit: '', value: get, show: (d) => (get(d) == null ? '–' : String(get(d))), sub: (d) => LABEL(get(d)), series: S(get), chart: 'bars', fmt: (v) => String(round(v)), max: 100, ...extra });
+
+const METRICS = {
+  readiness: scoreMetric('Readiness', (d) => d.readiness, {
+    what: 'Readiness is a single number for how prepared your body is to take on strain today. It looks at how your nervous system recovered overnight, how you slept last night and over the past two weeks, how hard yesterday was, and whether your training load has been building sensibly.',
+    how: ['HRV vs your 30-day normal — 25%', 'Resting heart rate vs your normal — 20%', 'Last night’s sleep — 20%', 'Sleep balance (14 nights) — 10%', 'Previous day’s strain — 10%', 'Training balance (7-day vs 4-week load) — 10%', 'Morning Body Battery — 5%'],
+    scale: '85–100 optimal · 70–84 good · 60–69 fair · under 60 pay attention.',
+    tips: ['Keep bed and wake times regular — consistency helps HRV more than one long lie-in.', 'Alcohol and late heavy meals are the most common causes of a low score.', 'After a hard session, a low score the next morning is normal; it should bounce back within 1–2 days.'],
+    related: ['c.hrv', 'c.rhr', 'c.sleep', 'c.sleepBal', 'c.prevDay', 'c.trainBal', 'c.bb'],
+    note: 'Pulse estimate built from Garmin data — not a Garmin or Oura number.',
+  }),
+  sleepScore: scoreMetric('Sleep score', (d) => d.sleepScore, {
+    sub: (d) => `${LABEL(d.sleepScore)}${d.sleepScoreSource ? ` · ${d.sleepScoreSource} score` : ''}`,
+    what: 'Your sleep score rates last night as a whole: how long you slept, how deep and restful it was, and whether it happened at a good time for your body clock.',
+    how: ['When your watch calculates one, this is Garmin’s own sleep score.', 'If not, Pulse averages the contributors below: total sleep vs your need, efficiency, restfulness, REM, deep sleep and timing.'],
+    scale: '85–100 optimal · 70–84 good · 60–69 fair · under 60 pay attention.',
+    tips: ['Aim for a consistent bedtime within a 30-minute window.', 'Keep the bedroom cool, dark and quiet.', 'Caffeine after 2 pm and screens in bed both cut deep sleep.'],
+    related: ['s.total', 's.eff', 's.rest', 's.rem', 's.deep', 's.timing'],
+  }),
+  activityScore: scoreMetric('Activity', (d) => d.activityScore, {
+    what: 'Activity rates how well you balanced moving and recovering. It rewards staying active through the day, getting some intensity, training regularly — and also taking rest when you need it.',
+    how: ['Stay active — steps vs your Garmin step goal', 'Meet daily targets — intensity minutes (vigorous count double) vs 30 a day', 'Training frequency — sessions in the last 7 days (4+ is full marks)', 'Training volume — 7-day load vs your 4-week average', 'Recovery time — at least one easy day in the last 7'],
+    scale: 'Each contributor is 0–100; the score is their average.',
+    tips: ['Short walks after meals add steps without adding fatigue.', 'For a faster 5K, 3–4 runs a week with one quality session beats daily hard efforts.'],
+    related: ['a.stay', 'a.targets', 'a.freq', 'a.volume', 'a.recovery', 'strain'],
+    note: 'Pulse estimate built from Garmin data.',
+  }),
+  strain: { title: 'Strain', unit: '/ 21', value: (d) => d.strain, show: (d) => (d.strain ?? 0).toFixed(1), sub: (d) => `${d.acts.length} workout${d.acts.length === 1 ? '' : 's'} · load ${Math.round(d.load)}`, series: S((d) => d.strain), chart: 'bars', max: 21, fmt: (v) => v.toFixed(1), color: '--strain',
+    what: 'Strain is how much load your heart and body took today, on a 0–21 scale. It climbs quickly at first and slows near the top, so going from 18 to 20 takes far more work than going from 4 to 6.',
+    how: ['Built from Garmin’s training load for every workout, plus a little for steps.', 'Under 10 is light, 10–14 moderate, 14–18 strenuous, 18+ all-out.'],
+    tips: ['Match strain to readiness: push on optimal days, keep it under ~10 when readiness is low.'],
+    related: ['readiness', 'activityScore'] },
+
+  hrv: { title: 'Heart rate variability', unit: 'ms', value: (d) => d.hrv?.last, show: (d) => d.hrv?.last ?? '–', sub: (d) => (d.hrv?.last && d.hrvBase ? `${signed(d.hrv.last - d.hrvBase)} ms vs your 30-day normal (${round(d.hrvBase)} ms)` : 'Overnight average'), series: S((d) => d.hrv?.last), fmt: (v) => `${round(v)} ms`, color: '--optimal', higherBetter: true, base: (d) => d.hrvBase,
+    band: (day) => recent(day.key, 30).filter((d) => d.hrv?.low && d.hrv?.high).map((d) => [d.t, d.hrv.low, d.hrv.high]),
+    what: 'HRV is the tiny variation in time between heartbeats. Your Garmin measures it while you sleep. A higher value than usual means the “rest and recover” side of your nervous system is in charge.',
+    how: ['Shown is last night’s average (rMSSD) from Garmin.', 'The shaded band is Garmin’s “balanced” range for you, built from your recent weeks.', 'HRV varies hugely between people — only compare it with your own normal.'],
+    tips: ['Drops of 10% or more often follow hard training, alcohol, late meals, stress or getting ill.', 'A slowly rising trend over weeks usually means improving fitness.'],
+    related: ['c.hrv', 'readiness'] },
+  rhr: { title: 'Resting heart rate', unit: 'bpm', value: (d) => d.d.rhr, show: (d) => d.d.rhr ?? '–', sub: (d) => (d.rDiff != null ? `${signed(d.rDiff, 1)} bpm vs your 30-day normal (${round(d.rhrBase, 1)})` : 'Lowest heart rate of the day'), series: S((d) => d.d.rhr), fmt: fmtBpm, color: '--low', higherBetter: false, base: (d) => d.rhrBase,
+    what: 'Your resting heart rate is the lowest your heart beats while fully at rest, usually during sleep. It falls as your aerobic fitness improves.',
+    how: ['Measured by Garmin across the day and night.', 'A rise of 3+ bpm above your normal is an early sign of fatigue, dehydration, heat, alcohol or illness.'],
+    tips: ['Easy aerobic running (zone 2) is the most reliable way to lower it over months.'],
+    related: ['c.rhr', 'readiness'] },
+  resp: { title: 'Respiration rate', unit: 'brpm', value: (d) => d.d.resp, show: (d) => (d.d.resp != null ? round(d.d.resp, 1) : '–'), sub: () => 'Average breaths per minute', series: S((d) => round(d.d.resp, 1)), fmt: (v) => `${round(v, 1)} brpm`, color: '--strain', higherBetter: false, base: (d) => avg(recent(d.key, 30).slice(0, -1).map((x) => x.d.resp)),
+    what: 'How many breaths you take per minute on average. For most adults it sits between 12 and 20 and is very stable night to night.',
+    how: ['Measured by Garmin from your wrist sensor.'],
+    tips: ['A jump of 1–2 breaths per minute above your normal can be an early sign of illness or overreaching.'],
+    related: ['readiness'] },
+  spo2: { title: 'Blood oxygen (SpO2)', unit: '%', value: (d) => d.d.spo2 ?? d.sleep?.spo2, show: (d) => round(d.d.spo2 ?? d.sleep?.spo2) ?? '–', sub: () => 'Average, mostly overnight', series: S((d) => d.d.spo2 ?? d.sleep?.spo2), fmt: (v) => `${round(v)}%`, color: '--sleep',
+    what: 'The share of your blood’s haemoglobin carrying oxygen. 95–100% is typical at sea level.',
+    how: ['Measured by Garmin’s Pulse Ox sensor if it’s switched on (often only during sleep).', 'Wrist readings are less precise than a medical fingertip device and dip with altitude.'],
+    tips: ['Repeated readings under 90% are worth discussing with a doctor.'], related: ['resp'] },
+  stress: { title: 'Stress', unit: '/ 100', value: (d) => (d.d.stress >= 0 ? d.d.stress : null), show: (d) => (d.d.stress >= 0 ? d.d.stress : '–'), sub: (d) => (d.d.maxStress ? `Peak ${d.d.maxStress} today` : 'Average for the day'), series: S((d) => (d.d.stress >= 0 ? d.d.stress : null)), fmt: String, color: '--fair', higherBetter: false, base: (d) => avg(recent(d.key, 30).slice(0, -1).map((x) => (x.d.stress >= 0 ? x.d.stress : null))),
+    what: 'Garmin’s stress level reads your heart rate variability through the day. Low HRV while you’re not moving is counted as stress — physical or mental.',
+    how: ['0–25 rest · 26–50 low · 51–75 medium · 76–100 high.', 'Time spent exercising isn’t counted.'],
+    tips: ['A few minutes of slow breathing (around 6 breaths a minute) visibly lowers it.'], related: ['bb'] },
+  bb: { title: 'Body Battery', unit: '', value: (d) => d.d.bbMax, show: (d) => (d.d.bbMax != null ? `${d.d.bbMax}` : '–'), sub: (d) => (d.d.bbMin != null ? `High ${d.d.bbMax} · low ${d.d.bbMin}${d.d.bbCharged != null ? ` · +${d.d.bbCharged} / −${d.d.bbDrained ?? '–'}` : ''}` : 'Daily high'), series: S((d) => d.d.bbMax), fmt: String, color: '--optimal', higherBetter: true,
+    what: 'Garmin’s estimate of your energy reserves from 0 to 100. It charges while you rest and sleep and drains with activity and stress.',
+    how: ['Shown is the day’s high, usually right after you wake up.', 'Charged and drained show how much it went up and down across the day.'],
+    tips: ['Waking below ~50 regularly suggests you need more or better sleep.'], related: ['c.bb', 'stress'] },
+  steps: { title: 'Steps', unit: '', value: (d) => d.d.steps, show: (d) => fmtInt(d.d.steps), sub: (d) => (d.d.stepGoal ? `Goal ${fmtInt(d.d.stepGoal)}` : 'Daily total'), series: S((d) => d.d.steps), fmt: fmtInt, color: '--strain', higherBetter: true, chart: 'bars',
+    what: 'Every step your Garmin counted today, including runs.', how: ['Your step goal comes from Garmin (it adapts automatically unless you’ve set one).'], tips: ['Steps between workouts matter for recovery and overall health, not just total exercise.'], related: ['a.stay'] },
+  calories: { title: 'Calories', unit: 'kcal', value: (d) => d.d.calTotal, show: (d) => fmtInt(d.d.calTotal), sub: (d) => (d.d.calActive != null ? `${fmtInt(d.d.calActive)} active · ${fmtInt(d.d.calTotal - d.d.calActive)} resting` : 'Total burned'), series: S((d) => d.d.calTotal), fmt: fmtInt, color: '--fair', chart: 'bars',
+    what: 'Total energy burned today: your resting metabolism plus everything active.', how: ['Estimated by Garmin from your profile, heart rate and movement — treat it as a rough guide.'], tips: [], related: ['steps'] },
+  intensity: { title: 'Intensity minutes', unit: 'min', value: (d) => d.im, show: (d) => d.im, sub: (d) => `${d.d.imMod ?? 0} moderate · ${d.d.imVig ?? 0} vigorous`, series: S((d) => d.im), fmt: (v) => `${v} min`, color: '--strain', chart: 'bars',
+    what: 'Minutes spent at moderate or vigorous effort. Vigorous minutes count double.', how: ['Health guidelines suggest 150 a week (about 22 a day).'], tips: [], related: ['a.targets'] },
+  distance: { title: 'Distance', unit: 'km', value: (d) => (d.d.distance != null ? d.d.distance / 1000 : null), show: (d) => (d.d.distance != null ? (d.d.distance / 1000).toFixed(1) : '–'), sub: () => 'All movement today', series: S((d) => (d.d.distance != null ? round(d.d.distance / 1000, 2) : null)), fmt: (v) => `${v.toFixed(1)} km`, color: '--strain', chart: 'bars',
+    what: 'Total distance covered today, walking and running.', how: ['Measured by Garmin from steps, stride and GPS.'], tips: [], related: ['steps'] },
+  floors: { title: 'Floors climbed', unit: '', value: (d) => d.d.floors, show: (d) => (d.d.floors != null ? round(d.d.floors) : '–'), sub: () => 'About 3 m of climbing each', series: S((d) => d.d.floors), fmt: (v) => String(round(v)), color: '--ink-2', chart: 'bars', what: 'Floors climbed, from your watch’s barometer.', how: [], tips: [], related: [] },
+  vo2: { title: 'VO2 max', unit: '', value: (d) => lastVo2(d)?.vo2, show: (d) => lastVo2(d)?.vo2 ?? '–', sub: (d) => (lastVo2(d) ? `Last updated ${fmtDate(lastVo2(d).t)}` : 'From runs with GPS and heart rate'),
+    series: (day) => M.acts.filter((a) => a.vo2 && a.t <= day.t + DAY && a.t > day.t - 180 * DAY).map((a) => [a.t, a.vo2]), fmt: String, color: '--strain', higherBetter: true,
+    what: 'VO2 max is the most oxygen your body can use per minute, per kilo — the engine size behind your running.', how: ['Garmin estimates it from your pace and heart rate on outdoor runs.', 'The chart shows the last 6 months.'], tips: ['Intervals at 5K pace or faster and steady easy mileage both raise it.'], related: ['goal5k'] },
+  goal5k: { title: 'Sub-27 5K', unit: '', value: () => best5kRecent()?.sec, show: () => (best5kRecent() ? fmtClock(best5kRecent().sec) : '–'), sub: () => { const b = best5kRecent(); if (!b) return 'No 5K efforts yet'; const gap = Math.round(b.sec - GOAL.seconds); return gap <= 0 ? `Goal beaten by ${fmtClock(-gap)}` : `${fmtClock(gap)} to go · best of the last 90 days`; },
+    series: (day) => M.acts.filter((a) => isRun(a) && best5k(a) && a.t > day.t - 180 * DAY && a.t <= day.t + DAY).map((a) => [a.t, round(best5k(a))]), fmt: fmtClock, color: '--activity-b', invert: true, refs: [{ y: GOAL.seconds, label: '27:00' }],
+    what: `Your goal is to run 5 km in under 27:00 — an average pace of ${fmtPace(GOAL.seconds / 5)}.`, how: ['Each point is your fastest 5 km inside a run (Garmin’s fastest-split), over the last 6 months.', 'Lower on the chart is faster.'],
+    tips: ['One interval session a week (e.g. 5 × 1 km just under goal pace) plus 2–3 easy runs.', 'Run the easy days truly easy — it’s what lets you hit the hard ones.'], related: ['vo2', 'readiness'] },
+
+  // readiness contributors
+  'c.hrv': { title: 'HRV balance', kind: 'score', value: (d) => d.rc.hrv, show: (d) => d.rc.hrv ?? '–', sub: (d) => (d.hrv?.last ? `${d.hrv.last} ms last night · normal ${round(d.hrvBase) ?? '–'} ms` : 'No HRV last night'), series: S((d) => d.rc?.hrv), chart: 'bars', max: 100, fmt: String,
+    what: 'Compares last night’s HRV with your own 30-day normal.', how: ['At your normal you score about 78. Each standard deviation above adds ~14 points; below takes them away.'], tips: ['Several low nights in a row are a signal to back off.'], related: ['hrv'] },
+  'c.rhr': { title: 'Resting heart rate', kind: 'score', value: (d) => d.rc.rhr, show: (d) => d.rc.rhr ?? '–', sub: (d) => (d.d.rhr ? `${d.d.rhr} bpm · normal ${round(d.rhrBase, 1) ?? '–'} bpm` : 'No resting HR'), series: S((d) => d.rc?.rhr), chart: 'bars', max: 100, fmt: String,
+    what: 'Compares today’s resting heart rate with your 30-day normal.', how: ['At your normal you score 85. Each bpm below adds 7.5 points, each bpm above takes 7.5 away.'], tips: [], related: ['rhr'] },
+  'c.sleep': { title: 'Previous night', kind: 'score', value: (d) => d.rc.sleep, show: (d) => d.rc.sleep ?? '–', sub: (d) => (d.asleep ? `${fmtHours(d.asleep)} asleep` : 'No sleep recorded'), series: S((d) => d.rc?.sleep), chart: 'bars', max: 100, fmt: String,
+    what: 'How well you slept last night — your sleep score.', how: ['Uses Garmin’s sleep score when available.'], tips: [], related: ['sleepScore'] },
+  'c.sleepBal': { title: 'Sleep balance', kind: 'score', value: (d) => d.rc.sleepBal, show: (d) => d.rc.sleepBal ?? '–', sub: (d) => (d.sleepAvg14 ? `${fmtHours(d.sleepAvg14)} average over 14 nights` : 'Needs more nights'), series: S((d) => d.rc?.sleepBal), chart: 'bars', max: 100, fmt: String,
+    what: 'Whether you’ve been getting enough sleep over the last two weeks, not just last night.', how: ['Full marks at a 7.5 h average or more. Each hour short loses 25 points.'], tips: ['One long night won’t fix a two-week deficit — small, regular extra sleep does.'], related: ['s.total'] },
+  'c.prevDay': { title: 'Previous day activity', kind: 'score', value: (d) => d.rc.prevDay, show: (d) => d.rc.prevDay ?? '–', sub: (d) => { const y = M.byKey.get(dayKey(d.t - DAY)); return y ? `Yesterday’s strain ${(y.strain ?? 0).toFixed(1)}` : 'No data for yesterday'; }, series: S((d) => d.rc?.prevDay), chart: 'bars', max: 100, fmt: String,
+    what: 'How much yesterday’s activity is likely still affecting you.', how: ['Strain up to 14 scores 95. Above that, each strain point costs 9 points.'], tips: [], related: ['strain'] },
+  'c.trainBal': { title: 'Training balance', kind: 'score', value: (d) => d.rc.trainBal, show: (d) => d.rc.trainBal ?? '–', sub: (d) => { const y = M.byKey.get(dayKey(d.t - DAY)); return y?.trainRatio ? `Last 7 days at ${(y.trainRatio * 100).toFixed(0)}% of your usual week` : 'Needs a few weeks of workouts'; }, series: S((d) => d.rc?.trainBal), chart: 'bars', max: 100, fmt: String,
+    what: 'Whether your recent training load is in line with what your body is used to.', how: ['Compares the last 7 days of Garmin training load with your 4-week weekly average.', '80–130% scores best. Big jumps above that raise injury and illness risk; long dips mean detraining.'], tips: ['Grow weekly load by roughly 10% at a time.'], related: ['a.volume'] },
+  'c.bb': { title: 'Body Battery', kind: 'score', value: (d) => d.rc.bb, show: (d) => d.rc.bb ?? '–', sub: () => 'Your morning high from Garmin', series: S((d) => d.rc?.bb), chart: 'bars', max: 100, fmt: String,
+    what: 'Garmin’s morning Body Battery, used directly as a 0–100 contributor.', how: [], tips: [], related: ['bb'] },
+
+  // sleep contributors
+  's.total': { title: 'Total sleep', kind: 'score', value: (d) => d.sc?.total, show: (d) => d.sc?.total ?? '–', sub: (d) => (d.asleep ? `${fmtHours(d.asleep)} of ${fmtHours(d.sleepNeed)} needed` : '–'), series: S((d) => d.sc?.total), chart: 'bars', max: 100, fmt: String,
+    what: 'Time actually asleep compared with what you needed.', how: ['Your need starts at 7.5 h. It grows by 3 min for each strain point above 10 the day before, plus 30% of the sleep you’ve been missing over the last 3 nights.'], tips: [], related: ['c.sleepBal'] },
+  's.eff': { title: 'Efficiency', kind: 'score', value: (d) => d.sc?.eff, show: (d) => d.sc?.eff ?? '–', sub: (d) => (d.sleepEff ? `${Math.round(d.sleepEff * 100)}% of time in bed asleep` : '–'), series: S((d) => d.sc?.eff), chart: 'bars', max: 100, fmt: String,
+    what: 'The share of your time in bed you spent asleep.', how: ['95% or more is full marks; 70% or less scores lowest.'], tips: ['If you lie awake for more than 20 minutes, get up briefly and return when sleepy.'], related: ['s.rest'] },
+  's.rest': { title: 'Restfulness', kind: 'score', value: (d) => d.sc?.rest, show: (d) => d.sc?.rest ?? '–', sub: (d) => (d.sleep ? `${fmtHours(d.sleep.awake || 0)} awake${d.sleep.restless != null ? ` · ${d.sleep.restless} wake-ups or restless moments` : ''}` : '–'), series: S((d) => d.sc?.rest), chart: 'bars', max: 100, fmt: String,
+    what: 'How undisturbed your sleep was.', how: ['The first 5 minutes awake are free; each minute after costs 2 points.'], tips: ['Heat, noise, alcohol and a full bladder are the usual culprits.'], related: ['s.eff'] },
+  's.rem': { title: 'REM sleep', kind: 'score', value: (d) => d.sc?.rem, show: (d) => d.sc?.rem ?? '–', sub: (d) => (d.sleep?.rem != null ? `${fmtHours(d.sleep.rem)} · ${Math.round((d.sleep.rem / d.asleep) * 100)}% of sleep` : '–'), series: S((d) => d.sc?.rem), chart: 'bars', max: 100, fmt: String,
+    what: 'REM is the dreaming stage, important for memory, learning and mood. Most of it comes in the second half of the night.', how: ['About 22% of your sleep in REM is full marks.'], tips: ['Cutting the night short mostly cuts REM.'], related: ['s.deep'] },
+  's.deep': { title: 'Deep sleep', kind: 'score', value: (d) => d.sc?.deep, show: (d) => d.sc?.deep ?? '–', sub: (d) => (d.sleep?.deep != null ? `${fmtHours(d.sleep.deep)} · ${Math.round((d.sleep.deep / d.asleep) * 100)}% of sleep` : '–'), series: S((d) => d.sc?.deep), chart: 'bars', max: 100, fmt: String,
+    what: 'Deep sleep is when most physical repair happens and growth hormone peaks. It’s concentrated early in the night.', how: ['About 17% of your sleep as deep is full marks.'], tips: ['Hard training late in the evening and alcohol both reduce it.'], related: ['s.rem'] },
+  's.timing': { title: 'Timing', kind: 'score', value: (d) => d.sc?.timing, show: (d) => d.sc?.timing ?? '–', sub: (d) => (d.sleepMid != null ? `Midpoint ${String(Math.floor((d.sleepMid + 24) % 24)).padStart(2, '0')}:${String(Math.round(((d.sleepMid + 24) % 1) * 60) % 60).padStart(2, '0')}` : '–'), series: S((d) => d.sc?.timing), chart: 'bars', max: 100, fmt: String,
+    what: 'Whether your sleep lined up with your body clock.', how: ['A midpoint between midnight and 03:30 scores full marks; each hour outside that costs 20 points.'], tips: ['Morning daylight helps anchor your body clock.'], related: ['sleepScore'] },
+
+  // activity contributors
+  'a.stay': { title: 'Stay active', kind: 'score', value: (d) => d.ac.stay, show: (d) => d.ac.stay ?? '–', sub: (d) => `${fmtInt(d.d.steps)} of ${fmtInt(d.d.stepGoal || 8000)} steps`, series: S((d) => d.ac?.stay), chart: 'bars', max: 100, fmt: String, what: 'How close you got to your daily step goal.', how: ['Steps ÷ goal, capped at 100.'], tips: [], related: ['steps'] },
+  'a.targets': { title: 'Meet daily targets', kind: 'score', value: (d) => d.ac.targets, show: (d) => d.ac.targets ?? '–', sub: (d) => `${d.im} intensity minutes of 30`, series: S((d) => d.ac?.targets), chart: 'bars', max: 100, fmt: String, what: 'Whether you got some proper effort in today.', how: ['30 intensity minutes (vigorous counting double) is full marks.'], tips: [], related: ['intensity'] },
+  'a.freq': { title: 'Training frequency', kind: 'score', value: (d) => d.ac.freq, show: (d) => d.ac.freq ?? '–', sub: (d) => `${d.sessions7} workout${d.sessions7 === 1 ? '' : 's'} in the last 7 days`, series: S((d) => d.ac?.freq), chart: 'bars', max: 100, fmt: String, what: 'How regularly you’ve trained this week.', how: ['Counts workouts with real load (training load 20+ or 20+ minutes). 4 or more in 7 days is full marks.'], tips: [], related: ['a.volume'] },
+  'a.volume': { title: 'Training volume', kind: 'score', value: (d) => d.ac.volume, show: (d) => d.ac.volume ?? '–', sub: (d) => (d.trainRatio ? `7-day load at ${(d.trainRatio * 100).toFixed(0)}% of your usual week` : 'Needs a few weeks of workouts'), series: S((d) => d.ac?.volume), chart: 'bars', max: 100, fmt: String, what: 'Whether this week’s training load is in a productive range.', how: ['Same comparison as Training balance, but including today.'], tips: [], related: ['c.trainBal'] },
+  'a.recovery': { title: 'Recovery time', kind: 'score', value: (d) => d.ac.recovery, show: (d) => d.ac.recovery ?? '–', sub: (d) => `${d.restDays7} easy day${d.restDays7 === 1 ? '' : 's'} in the last 7`, series: S((d) => d.ac?.recovery), chart: 'bars', max: 100, fmt: String, what: 'Whether you’ve given your body at least one easy day this week.', how: ['Any day with strain under 6 counts as easy. One or more gives full marks.'], tips: ['Adaptation happens during recovery, not during the workout.'], related: ['readiness'] },
+};
+
+function best5k(a) { return a.f5k || (a.dist >= 4950 && a.dist <= 5400 ? a.dur * (5000 / a.dist) : null); }
+function best5kRecent() {
+  const pick = (from) => M.acts.filter((a) => isRun(a) && a.t >= from).map((a) => ({ a, t: a.t, sec: best5k(a) })).filter((x) => x.sec > 600).sort((x, y) => x.sec - y.sec)[0];
+  return pick(Date.now() - 90 * DAY) || pick(0) || null;
+}
+
+// ===================== sheet =====================
+const sheet = $('#sheet'), scrim = $('#scrim');
+let sheetOpen = false, lastFocus = null;
+function openSheet(key, dayKeyOverride) {
+  const m = METRICS[key]; if (!m) return;
+  const day = M.byKey.get(dayKeyOverride || cur);
+  $('#sheet-title').textContent = m.title;
+  const body = $('#sheet-body');
+  const val = m.value(day), series = m.series(day) || [];
+  const vals = series.map((p) => p[1]);
+  const base = m.base ? m.base(day) : avg(vals.slice(0, -1));
+  const isScore = m.kind === 'score' || m.max === 100 && m.chart === 'bars';
+  const fmt = m.fmt || String;
+  body.innerHTML = `
+    <div class="small muted">${fmtDay(day.t)}</div>
+    <div class="sh-hero"><b id="sh-num">${esc(m.show(day))}</b>${m.unit ? `<small>${esc(m.unit)}</small>` : ''}</div>
+    ${isScore && val != null ? `<div class="status" style="margin-top:4px"><i style="background:${scoreColor(val)}"></i>${LABEL(val)}</div>` : ''}
+    <div class="sh-sub" style="margin-top:10px">${esc(m.sub ? m.sub(day) : '')}</div>
+    <div class="sh-stats">
+      <div><span>This day</span><b>${val == null ? '–' : esc(fmt(val))}</b></div>
+      <div><span>30-day avg</span><b>${base == null ? '–' : esc(fmt(round(base, 1)))}</b></div>
+      <div><span>Range</span><b>${vals.length ? `${esc(fmt(Math.min(...vals)))}–${esc(fmt(Math.max(...vals)))}` : '–'}</b></div>
+    </div>
+    <div class="chart" id="sh-chart"></div>
+    <div class="sh-sec"><h4>What it is</h4><p>${esc(m.what || '')}</p></div>
+    ${m.how && m.how.length ? `<div class="sh-sec"><h4>How it’s measured</h4><ul>${m.how.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>${m.scale ? `<p style="margin-top:8px">${esc(m.scale)}</p>` : ''}</div>` : ''}
+    ${m.tips && m.tips.length ? `<div class="sh-sec"><h4>What helps</h4><ul>${m.tips.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+    ${m.related && m.related.length ? `<div class="sh-sec"><h4>Related</h4><div class="chips">${m.related.filter((k) => METRICS[k]).map((k) => `<button data-metric="${k}">${esc(METRICS[k].title)}</button>`).join('')}</div></div>` : ''}
+    <p class="sh-note">${esc(m.note || (m.kind === 'score' ? 'Contributor score calculated by Pulse from your Garmin data.' : 'Measured by Garmin.'))}</p>`;
+  if (!sheetOpen) { lastFocus = document.activeElement; history.pushState({ sheet: 1 }, '', location.hash || '#'); }
+  sheetOpen = true;
+  sheet.classList.add('open'); scrim.classList.add('open'); sheet.setAttribute('aria-hidden', 'false');
+  body.scrollTop = 0;
+  requestAnimationFrame(() => {
+    const node = $('#sh-chart');
+    const color = m.color ? css(m.color) : isScore ? null : css('--strain');
+    if (m.chart === 'bars') {
+      bars(node, series.map(([t, v]) => ({ label: fmtShort(t), value: v, color: color || scoreColor(v), selected: dayKey(t) === day.key, tip: `<b>${fmtDay(t)}</b>${tipRow(color || scoreColor(v), m.title, fmt(v))}` })), { height: 140, max: m.max, refs: base != null && !isScore ? [{ y: base, label: 'avg' }] : [] });
+    } else {
+      line(node, [{ name: m.title, color: color || css('--good'), data: series, dots: true, line: true, gapX: 10 * DAY }], { height: 150, yFmt: fmt, yTick: (x) => String(round(x, 1)), band: m.band ? m.band(day) : null, refs: m.refs || (base != null ? [{ y: base, label: '30-day avg' }] : []), invert: m.invert });
+    }
+  });
+  setTimeout(() => $('#sheet-close').focus({ preventScroll: true }), 50);
+}
+function closeSheet(fromHistory = false) {
+  if (!sheetOpen) return;
+  sheetOpen = false;
+  sheet.classList.remove('open'); scrim.classList.remove('open'); sheet.setAttribute('aria-hidden', 'true');
+  sheet.style.transform = '';
+  hideTip();
+  if (!fromHistory) history.back();
+  if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
+}
+scrim.onclick = () => closeSheet();
+$('#sheet-close').onclick = () => closeSheet();
+addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-metric]');
+  if (t) { e.preventDefault(); openSheet(t.dataset.metric, t.dataset.day); }
+});
+// drag down to dismiss (mobile)
+(() => {
+  let y0 = null, dy = 0;
+  const startDrag = (e) => { if (innerWidth >= 900) return; y0 = e.clientY; dy = 0; sheet.classList.add('dragging'); e.target.setPointerCapture?.(e.pointerId); };
+  const moveDrag = (e) => { if (y0 == null) return; dy = Math.max(0, e.clientY - y0); sheet.style.transform = `translateY(${dy}px)`; };
+  const endDrag = () => { if (y0 == null) return; sheet.classList.remove('dragging'); y0 = null; if (dy > 110) closeSheet(); else sheet.style.transform = ''; };
+  for (const h of [$('.grab', sheet), $('.sheet-head', sheet)]) { h.addEventListener('pointerdown', startDrag); h.addEventListener('pointermove', moveDrag); h.addEventListener('pointerup', endDrag); h.addEventListener('pointercancel', endDrag); }
+})();
+
+// ===================== navigation =====================
 let M = null, cur = null, route = location.hash.slice(1) || 'today';
 let trendDays = Number(tryStore(() => localStorage.getItem('trendDays')) || 30);
 const cache = new Map();
 function cached(path) { if (!cache.has(path)) cache.set(path, api(path)); return cache.get(path); }
 
 const ICONS = {
-  today: '<path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="5"/>',
+  today: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/>',
+  readiness: '<path d="M12 21s-7.5-4.6-7.5-10.4A4.4 4.4 0 0 1 12 7.7a4.4 4.4 0 0 1 7.5 2.9C19.5 16.4 12 21 12 21z"/>',
   sleep: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
-  strain: '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
-  activities: '<circle cx="14" cy="4.5" r="1.8"/><path d="M8 21l3-7 3 3v4M6 12l3.5-4 4 1.5 2.5 3 3 .5"/>',
+  activity: '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+  workouts: '<circle cx="14" cy="4.5" r="1.8"/><path d="M8 21l3-7 3 3v4M6 12l3.5-4 4 1.5 2.5 3 3 .5"/>',
   trends: '<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>',
   data: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
   profile: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+  explore: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
 };
-const SIDE = [['today', 'Today'], ['sleep', 'Sleep'], ['strain', 'Strain'], ['activities', 'Activities'], ['trends', 'Trends'], ['data', 'Data'], ['profile', 'Profile']];
-const TABS = [['today', 'Today'], ['sleep', 'Sleep'], ['activities', 'Activities'], ['trends', 'Trends'], ['data', 'Data']];
-const navHtml = (items) => items.map(([id, label]) => `<button class="nav-btn" data-go="${id}" ${route.split('/')[0] === id || (id === 'activities' && route.startsWith('activity/')) ? 'aria-current="page"' : ''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS[id]}</svg><span>${label}</span></button>`).join('');
+const SIDE = [['today', 'Today'], ['readiness', 'Readiness'], ['sleep', 'Sleep'], ['activity', 'Activity'], null, ['workouts', 'Workouts'], ['trends', 'Trends'], ['data', 'Data'], ['profile', 'Profile']];
+const TABS = [['today', 'Today'], ['readiness', 'Readiness'], ['sleep', 'Sleep'], ['activity', 'Activity'], ['explore', 'Explore']];
+const DAY_ROUTES = ['today', 'readiness', 'sleep', 'activity'];
+const baseOf = (r) => { const b = r.split('/')[0]; return b === 'workout' ? 'workouts' : b; };
+function navHtml(items, mobile) {
+  const b = baseOf(route), active = mobile && ['workouts', 'trends', 'data', 'profile'].includes(b) ? 'explore' : b;
+  return items.map((it) => (it ? `<button class="nav-btn" data-go="${it[0]}" ${active === it[0] ? 'aria-current="page"' : ''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[it[0]]}</svg><span>${it[1]}</span></button>` : '<div class="sep"></div>')).join('');
+}
+function go(r) {
+  if (sheetOpen) closeSheet();
+  const doIt = () => { route = r; history.pushState(null, '', `#${r}`); render(); window.scrollTo({ top: 0 }); };
+  if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(doIt); else doIt();
+}
+function selectDay(k) { cur = k; render(true); }
+addEventListener('popstate', () => {
+  if (sheetOpen) { closeSheet(true); return; }
+  route = location.hash.slice(1) || 'today'; render();
+});
 
-function go(r) { route = r; history.pushState(null, '', `#${r}`); render(); window.scrollTo({ top: 0 }); }
-addEventListener('popstate', () => { route = location.hash.slice(1) || 'today'; render(); });
-
+function greeting() { const h = new Date().getHours(); return h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; }
 function topLeft() {
-  const tl = $('#top-left');
-  const base = route.split('/')[0];
-  if (['today', 'sleep', 'strain'].includes(base)) {
-    const keys = M.days.map((d) => d.key), i = keys.indexOf(cur);
-    const label = cur === dayKey(Date.now()) ? 'Today' : cur === dayKey(Date.now() - DAY) ? 'Yesterday' : fmtDay(parseDay(cur));
-    tl.innerHTML = `<div class="daynav"><button id="prev-day" aria-label="Previous day" ${i <= 0 ? 'disabled' : ''}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button><div class="label">${label}</div><button id="next-day" aria-label="Next day" ${i >= keys.length - 1 ? 'disabled' : ''}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button></div>`;
-    $('#prev-day').onclick = () => { cur = keys[i - 1]; render(); };
-    $('#next-day').onclick = () => { cur = keys[i + 1]; render(); };
-  } else if (base === 'activity') {
-    tl.innerHTML = '<button class="pill-btn" id="back">← Activities</button>';
-    $('#back').onclick = () => go('activities');
-  } else {
-    tl.innerHTML = `<h1 class="page-title">${({ activities: 'Activities', trends: 'Trends', data: 'Data', profile: 'Profile' })[base] || ''}</h1>`;
+  const tl = $('#top-left'), b = route.split('/')[0];
+  const dayLabel = cur === dayKey(Date.now()) ? 'Today' : cur === dayKey(Date.now() - DAY) ? 'Yesterday' : fmtDay(parseDay(cur));
+  if (b === 'today' || b === '') tl.innerHTML = `<div class="greet">${dayLabel === 'Today' ? fmtDay(Date.now()) : dayLabel}</div><h1 class="page-title">${dayLabel === 'Today' ? greeting() : 'Your day'}</h1>`;
+  else if (DAY_ROUTES.includes(b)) tl.innerHTML = `<div class="greet">${dayLabel}</div><h1 class="page-title">${({ readiness: 'Readiness', sleep: 'Sleep', activity: 'Activity' })[b]}</h1>`;
+  else if (b === 'workout') { tl.innerHTML = '<button class="back" id="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>Workouts</button>'; $('#back').onclick = () => go('workouts'); }
+  else tl.innerHTML = `<h1 class="page-title">${({ workouts: 'Workouts', trends: 'Trends', data: 'Data', profile: 'Profile', explore: 'Explore' })[b] || ''}</h1>`;
+}
+function weekStrip() {
+  const host = $('#weekstrip'), b = route.split('/')[0] || 'today';
+  if (!DAY_ROUTES.includes(b)) { host.innerHTML = ''; return; }
+  const list = M.days.slice(-28);
+  const scoreOf = (d) => (b === 'sleep' ? d.sleepScore : b === 'activity' ? d.activityScore : d.readiness);
+  const st = stops(b === 'today' ? 'readiness' : b);
+  host.innerHTML = '<div class="week" id="week"></div>';
+  const wrap = $('#week');
+  for (const d of list) {
+    const btn = document.createElement('button');
+    btn.className = 'wday'; btn.dataset.k = d.key;
+    if (d.key === cur) btn.setAttribute('aria-current', 'date');
+    btn.setAttribute('aria-label', `${fmtDay(d.t)}${scoreOf(d) != null ? `, score ${scoreOf(d)}` : ''}`);
+    btn.innerHTML = `<span class="l">${WD[new Date(d.t).getDay()].slice(0, 2)}</span>`;
+    btn.appendChild(ring(28, scoreOf(d), 100, st, { thick: 3.5 }));
+    btn.insertAdjacentHTML('beforeend', `<span class="n">${new Date(d.t).getDate()}</span>`);
+    btn.onclick = () => selectDay(d.key);
+    wrap.appendChild(btn);
   }
+  const sel = $('[aria-current="date"]', wrap);
+  if (sel) wrap.scrollLeft = sel.offsetLeft - wrap.clientWidth + sel.offsetWidth + 8;
 }
 
-function render() {
+function render(dayOnly = false) {
   if (!M || !M.days.length) return;
-  $('#side-nav').innerHTML = navHtml(SIDE); $('#tab-nav').innerHTML = navHtml(TABS);
+  $('#side-nav').innerHTML = navHtml(SIDE, false); $('#tab-nav').innerHTML = navHtml(TABS, true);
   document.querySelectorAll('[data-go]').forEach((b) => (b.onclick = () => go(b.dataset.go)));
-  topLeft();
+  topLeft(); weekStrip();
+  const day = M.byKey.get(cur);
+  const b = route.split('/')[0] || 'today';
+  setGlow(DAY_ROUTES.includes(b) ? (b === 'sleep' ? day.sleepScore : b === 'activity' ? day.activityScore : day.readiness) : null);
   const v = $('#view');
-  v.className = 'view'; void v.offsetWidth; v.innerHTML = '';
+  v.className = ''; void v.offsetWidth; v.className = 'view'; v.innerHTML = '';
   const [base, arg] = route.split('/');
-  const views = { today: viewToday, sleep: viewSleep, strain: viewStrain, activities: viewActivities, activity: viewActivity, trends: viewTrends, data: viewData, profile: viewProfile };
+  const views = { today: viewToday, readiness: viewReadiness, sleep: viewSleep, activity: viewActivity2, workouts: viewActivities, workout: viewActivity, trends: viewTrends, data: viewData, profile: viewProfile, explore: viewExplore };
   (views[base] || viewToday)(v, arg);
 }
 
+// ===================== building blocks =====================
+function tile(key, day = M.byKey.get(cur), spark = true) {
+  const m = METRICS[key], b = document.createElement('button');
+  b.className = 'metric'; b.dataset.metric = key;
+  const val = m.value(day), base = m.base ? m.base(day) : null;
+  let d = m.sub ? esc(m.sub(day)) : '';
+  if (val != null && base != null && m.higherBetter != null) {
+    const diff = val - base, good = m.higherBetter ? diff > 0 : diff < 0;
+    d = Math.abs(diff) < 0.5 ? '<span class="flat">at your normal</span>' : `<span class="${good ? 'good' : 'bad'}">${diff > 0 ? '▲' : '▼'} ${Math.abs(diff).toFixed(Math.abs(diff) < 10 ? 1 : 0)}</span><span class="muted">vs normal</span>`;
+  }
+  const unit = m.unit && !['/ 21', '/ 100'].includes(m.unit) ? m.unit : '';
+  b.innerHTML = `<div class="k"><span>${esc(m.title)}</span><span class="chev">›</span></div><div class="v">${esc(m.show(day))}${unit ? `<small>${esc(unit)}</small>` : ''}</div><div class="d">${d}</div>${spark ? '<div class="spark chart"></div>' : ''}`;
+  if (spark) { const s = m.series(day); if (s.length > 1) requestAnimationFrame(() => line($('.spark', b), [{ name: m.title, color: m.color ? css(m.color) : css('--good'), data: s, fmt: m.fmt }], { spark: true, invert: m.invert })); }
+  return b;
+}
+function tiles(node, keys, day) { for (const k of keys) node.appendChild(tile(k, day)); }
+
+function contributors(node, list, day, color) {
+  node.innerHTML = list.map(([key]) => {
+    const m = METRICS[key], v = m.value(day);
+    return `<button class="contrib" data-metric="${key}"><span class="name">${esc(m.title)}</span><span class="val">${v == null ? 'No data' : LABEL(v)}<span class="chev">›</span></span><span class="track"><div data-w="${v ?? 0}" style="background:${v == null ? 'transparent' : color || scoreColor(v)}"></div></span></button>`;
+  }).join('');
+  requestAnimationFrame(() => requestAnimationFrame(() => node.querySelectorAll('[data-w]').forEach((d) => (d.style.width = `${d.dataset.w}%`))));
+}
+
+function heroScore(node, value, kind, label, lead) {
+  node.innerHTML = `<div class="hero"><div class="ring-wrap"><div class="score"><b class="thin">–</b><span>${label}</span></div></div>
+    <div class="status"><i style="background:${scoreColor(value)}"></i>${LABEL(value)}</div>${lead ? `<p class="lead">${esc(lead)}</p>` : ''}</div>`;
+  $('.ring-wrap', node).prepend(ring(240, value, 100, stops(kind), { thick: 14 }));
+  countUp($('.score b', node), value);
+}
+
+function dayBars(node, key, fn, kind, n = 14, opts = {}) {
+  const ds = recent(cur, n);
+  bars(node, ds.map((d) => ({ key: d.key, label: fmtShort(d.t), value: fn(d), color: opts.color || scoreColor(fn(d)), dim: d.key !== cur, selected: d.key === cur, tip: `<b>${fmtDay(d.t)}</b>${tipRow(opts.color || scoreColor(fn(d)), METRICS[key].title, fn(d) ?? '–')}` })), { height: 130, max: opts.max ?? 100, onPick: selectDay });
+}
+
+// ===================== TODAY =====================
+function viewToday(v) {
+  const day = M.byKey.get(cur), c = coachFor(day);
+  v.innerHTML = `
+    <div class="trio" id="trio"></div>
+    <div class="card mt"><div class="coach"><div class="badge" style="background:color-mix(in srgb, ${c.color} 18%, transparent);color:${c.color}">${c.icon}</div><div><h4>${esc(c.title)}</h4><p>${esc(c.text)}</p></div></div></div>
+    <div class="cols mt">
+      <div class="stack">
+        <div class="card"><div class="card-title"><h3>Your day</h3><span>${fmtDay(day.t)}</span></div><div class="timeline" id="tl"></div></div>
+        <button class="card tap" data-metric="goal5k" style="display:block;width:100%;text-align:left" id="goal"></button>
+      </div>
+      <div class="stack"><div class="metrics" id="m-key"></div></div>
+    </div>
+    <div class="section-label">Everything Garmin sent for this day</div>
+    <div class="card" id="raw-daily"></div>`;
+  const trio = $('#trio');
+  for (const [kind, label, val, sub, r] of [['readiness', 'Readiness', day.readiness, LABEL(day.readiness), 'readiness'], ['sleep', 'Sleep', day.sleepScore, day.asleep ? fmtHours(day.asleep) : 'No data', 'sleep'], ['activity', 'Activity', day.activityScore, `Strain ${(day.strain ?? 0).toFixed(1)}`, 'activity']]) {
+    const b = document.createElement('button');
+    b.className = 'card tap';
+    b.innerHTML = `<div class="rw"><b class="thin">–</b></div><div class="cap">${label}</div><div class="sub">${esc(sub)}</div>`;
+    $('.rw', b).prepend(ring(116, val, 100, stops(kind), { thick: 8 }));
+    countUp($('.rw b', b), val);
+    b.onclick = () => go(r);
+    trio.appendChild(b);
+  }
+  // timeline
+  const items = [];
+  if (day.sleep?.start && day.sleep?.end) items.push({ sort: -1, time: wallClock(day.sleep.end), t: 'Woke up', s: `Slept ${fmtHours(day.asleep)} · from ${wallClock(day.sleep.start)}`, r: day.sleepScore != null ? `${day.sleepScore}` : '', dot: 'var(--sleep-b)', metric: 'sleepScore' });
+  for (const a of day.acts) items.push({ sort: a.t, time: fmtTime(a.t), t: a.name || prettyType(a.type), s: `${fmtClock(a.dur)}${a.dist ? ` · ${fmtKm(a.dist)}` : ''}${a.avgHR ? ` · ${Math.round(a.avgHR)} bpm` : ''}`, r: `${strainFromLoad(a.load, 0).toFixed(1)}`, dot: 'var(--activity-b)', act: a.id });
+  if (day.d.steps != null) items.push({ sort: Infinity, time: 'Total', t: `${fmtInt(day.d.steps)} steps`, s: `${day.d.calTotal ? `${fmtInt(day.d.calTotal)} kcal · ` : ''}${day.im} intensity min`, r: '', dot: 'var(--readiness-b)', metric: 'steps' });
+  items.sort((a, b) => a.sort - b.sort);
+  $('#tl').innerHTML = items.length ? items.map((x) => `<button class="tl" style="--dot:${x.dot}" ${x.act ? `data-act="${x.act}"` : `data-metric="${x.metric}"`}><span class="time">${x.time}</span><span style="min-width:0"><div class="t">${esc(x.t)}</div><div class="s">${esc(x.s)}</div></span><span class="r">${x.r}</span></button>`).join('') : '<div class="empty">Nothing recorded yet.</div>';
+  bindActs($('#tl'));
+  tiles($('#m-key'), ['hrv', 'rhr', 'bb', 'stress', 'resp', 'spo2', 'strain', 'vo2'], day);
+  const b5 = best5kRecent(), gap = b5 ? Math.round(b5.sec - GOAL.seconds) : null, frac = b5 ? clamp((32 * 60 - b5.sec) / (32 * 60 - GOAL.seconds), 0, 1) : 0;
+  $('#goal').innerHTML = `<div class="card-title"><h3>Goal · ${esc(GOAL.label)}</h3><span class="chev">›</span></div><div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><b class="thin" style="font-size:44px;line-height:1">${b5 ? fmtClock(b5.sec) : '–'}</b><span class="small" style="color:${gap != null && gap <= 0 ? 'var(--optimal)' : 'var(--ink-2)'}">${gap == null ? 'No 5K efforts yet' : gap <= 0 ? `✓ beaten by ${fmtClock(-gap)}` : `${fmtClock(gap)} to go`}</span></div>
+    <div style="height:6px;border-radius:99px;background:var(--surface-3);margin:14px 0 6px;overflow:hidden"><div style="height:100%;width:${frac * 100}%;border-radius:99px;background:linear-gradient(90deg,var(--activity-b),var(--activity-a))"></div></div><div class="small muted" style="display:flex;justify-content:space-between"><span>32:00</span><span>Goal 27:00 · ${fmtPace(GOAL.seconds / 5)}</span></div>`;
+  rawCard($('#raw-daily'), 'Daily summary', `/api/raw?kind=daily&key=${cur}`, `daily-${cur}.json`);
+}
+
+// ===================== READINESS =====================
+function viewReadiness(v) {
+  const day = M.byKey.get(cur), c = coachFor(day);
+  v.innerHTML = `
+    <div id="hero"></div>
+    <div class="cols mt">
+      <div class="stack">
+        <div class="card"><div class="card-title"><h3>Contributors</h3><span>tap for details</span></div><div id="contrib"></div></div>
+        <div class="card"><div class="card-title"><h3>Last 14 days</h3></div><div class="chart" id="r14"></div></div>
+      </div>
+      <div class="stack">
+        <div class="metrics" id="vitals"></div>
+        <button class="card tap" data-metric="hrv" style="display:block;width:100%;text-align:left"><div class="card-title"><h3>HRV, last 30 nights</h3><span class="chev">›</span></div><div class="chart" id="hrv30"></div></button>
+      </div>
+    </div>`;
+  heroScore($('#hero'), day.readiness, 'readiness', 'Readiness', c.text);
+  contributors($('#contrib'), [['c.hrv'], ['c.rhr'], ['c.sleep'], ['c.sleepBal'], ['c.prevDay'], ['c.trainBal'], ['c.bb']], day, css('--readiness-b'));
+  dayBars($('#r14'), 'readiness', (d) => d.readiness);
+  tiles($('#vitals'), ['hrv', 'rhr', 'resp', 'spo2', 'bb', 'stress'], day);
+  const ds = recent(cur, 30), hv = ds.filter((d) => d.hrv?.last).map((d) => [d.t, d.hrv.last]);
+  line($('#hrv30'), [{ name: 'HRV', color: css('--readiness-a'), data: hv, dots: true, faint: true }, { name: '7-day avg', color: css('--readiness-b'), data: rolling(hv) }], { height: 140, yFmt: (x) => `${round(x)} ms`, yTick: String, band: ds.filter((d) => d.hrv?.low).map((d) => [d.t, d.hrv.low, d.hrv.high]) });
+}
+
+// ===================== SLEEP =====================
+function viewSleep(v) {
+  const day = M.byKey.get(cur), s = day.sleep;
+  v.innerHTML = `
+    <div id="hero"></div>
+    <div class="cols mt">
+      <div class="stack">
+        <div class="card"><div class="card-title"><h3>Contributors</h3><span>tap for details</span></div><div id="contrib"></div></div>
+        <div class="card"><div class="card-title"><h3>Sleep stages</h3><span>${s ? fmtHours(day.asleep) + ' asleep' : ''}</span></div><div class="stages" id="stage-bar"></div><div class="stage-list" id="stage-list"></div></div>
+        <div class="card" id="score-card"><div class="card-title"><h3>Garmin’s breakdown</h3></div><div class="empty">Loading…</div></div>
+      </div>
+      <div class="stack">
+        <div class="card"><div class="card-title"><h3>Key numbers</h3></div><div id="facts"></div></div>
+        <div class="card"><div class="card-title"><h3>Last 14 nights</h3><span>hours by stage</span></div><div class="legend" id="st-legend"></div><div class="chart" id="stage-bars"></div></div>
+        <div class="card"><div class="card-title"><h3>Bedtime &amp; wake-up</h3><span>last 30 nights</span></div><div class="legend" id="bt-legend"></div><div class="chart" id="bedtime"></div></div>
+      </div>
+    </div>
+    <div class="section-label">Everything Garmin sent for this night</div>
+    <div class="card" id="raw-sleep"></div>`;
+  heroScore($('#hero'), day.sleepScore, 'sleep', 'Sleep score', day.asleep ? `${fmtHours(day.asleep)} asleep of the ${fmtHours(day.sleepNeed)} you needed${day.sleepScoreSource ? ` · ${day.sleepScoreSource} score` : ''}.` : 'No sleep recorded for this night.');
+  contributors($('#contrib'), [['s.total'], ['s.eff'], ['s.rest'], ['s.rem'], ['s.deep'], ['s.timing']], day, css('--sleep-b'));
+  const facts = [
+    ['Time asleep', day.asleep ? fmtHours(day.asleep) : '–', 's.total'], ['Time in bed', s?.start && s?.end ? fmtHours((s.end - s.start) / 1000) : '–', 's.eff'],
+    ['Fell asleep', s?.start ? wallClock(s.start) : '–', 's.timing'], ['Woke up', s?.end ? wallClock(s.end) : '–', 's.timing'],
+    ['Efficiency', day.sleepEff ? `${Math.round(day.sleepEff * 100)}%` : '–', 's.eff'], ['Awake', s ? fmtHours(s.awake || 0) : '–', 's.rest'],
+    ['Overnight HRV', day.hrv?.last ? `${day.hrv.last} ms` : '–', 'hrv'], ['Resting heart rate', day.d.rhr ? `${day.d.rhr} bpm` : '–', 'rhr'],
+    ['Respiration', s?.resp != null ? `${round(s.resp, 1)} brpm` : '–', 'resp'], ['Blood oxygen', s?.spo2 != null ? `${round(s.spo2)}%` : '–', 'spo2'],
+    ['Sleep stress', s?.stress != null ? `${round(s.stress, 1)}` : '–', 'stress'], ['Restless moments', s?.restless ?? '–', 's.rest'],
+  ];
+  $('#facts').innerHTML = facts.map(([k, val, m]) => `<button class="fact-line" data-metric="${m}"><span>${k}</span><b>${esc(val)}</b></button>`).join('');
+  const st = [['deep', 'Deep', '--deep'], ['light', 'Light', '--light'], ['rem', 'REM', '--rem'], ['awake', 'Awake', '--awake']];
+  if (s) {
+    const tot = sum(st.map(([k]) => s[k] || 0)) || 1;
+    for (const [k, l, cvar] of st) { if (!s[k]) continue; const seg = document.createElement('div'); seg.style.cssText = `flex:${s[k] / tot};background:var(${cvar})`; hover(seg, tipRow(css(cvar), l, `${fmtHours(s[k])} · ${Math.round((s[k] / tot) * 100)}%`)); $('#stage-bar').appendChild(seg); }
+    $('#stage-list').innerHTML = st.map(([k, l, cvar]) => `<div><i style="background:var(${cvar})"></i>${l}<b>${fmtHM(s[k] || 0)}</b>${Math.round(((s[k] || 0) / tot) * 100)}%</div>`).join('');
+  } else { $('#stage-bar').hidden = true; $('#stage-list').innerHTML = '<div class="empty" style="grid-column:1/-1">No sleep recorded for this night.</div>'; }
+  const nights = recent(cur, 14);
+  legend($('#st-legend'), st.map(([, l, cvar]) => [css(cvar), l]));
+  bars($('#stage-bars'), nights.map((d) => ({ key: d.key, label: fmtShort(d.t), parts: st.map(([k]) => (d.sleep?.[k] || 0) / 3600), colors: st.map(([, , cvar]) => css(cvar)), selected: d.key === cur,
+    tip: `<b>${fmtDay(d.t)}</b>${st.map(([k, l, cvar]) => tipRow(css(cvar), l, fmtHours(d.sleep?.[k] || 0))).join('')}${tipRow(null, 'Score', d.sleepScore ?? '–')}` })), { yTick: (x) => `${x}h`, onPick: selectDay });
+  const after6 = (ts) => { let h = wall(ts); if (h < 18) h += 24; return round(h - 18, 2); };
+  const hh = (x) => { const h = (x + 18) % 24; return `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60) % 60).padStart(2, '0')}`; };
+  const n30 = recent(cur, 30).filter((d) => d.sleep?.start && d.sleep?.end);
+  legend($('#bt-legend'), [[css('--sleep-a'), 'Fell asleep', true], [css('--fair'), 'Woke up', true]]);
+  line($('#bedtime'), [{ name: 'Asleep', color: css('--sleep-a'), data: n30.map((d) => [d.t, after6(d.sleep.start)]) }, { name: 'Woke', color: css('--fair'), data: n30.map((d) => [d.t, after6(d.sleep.end)]) }], { yFmt: hh, invert: true, height: 140 });
+  (async () => {
+    const node = $('#score-card');
+    const { status, body } = await cached(`/api/raw?kind=sleep&key=${cur}`);
+    if (!node.isConnected) return;
+    const scores = status === 200 && body?.sleepScores ? Object.entries(body.sleepScores).filter(([k, x]) => x && typeof x === 'object' && x.value != null && k !== 'overall') : [];
+    node.innerHTML = '<div class="card-title"><h3>Garmin’s breakdown</h3><span>from your watch</span></div>' + (scores.length
+      ? scores.map(([k, x]) => `<div class="score-row"><span>${esc(humanize(k))}${x.qualifierKey ? ` <span class="muted small">· ${esc(prettyType(x.qualifierKey))}</span>` : ''}</span><div class="bar"><div style="width:${clamp(x.value, 0, 100)}%"></div></div><b>${round(x.value, 1)}</b></div>`).join('')
+      : '<div class="empty">Garmin didn’t send a breakdown for this night.</div>');
+  })();
+  rawCard($('#raw-sleep'), 'Sleep record', `/api/raw?kind=sleep&key=${cur}`, `sleep-${cur}.json`);
+}
+
+// ===================== ACTIVITY =====================
+function viewActivity2(v) {
+  const day = M.byKey.get(cur);
+  const zones = [0, 0, 0, 0, 0];
+  for (const a of day.acts) (a.zones || []).forEach((z, i) => { zones[i] += z || 0; });
+  const zt = sum(zones);
+  v.innerHTML = `
+    <div id="hero"></div>
+    <div class="cols mt">
+      <div class="stack">
+        <div class="card"><div class="card-title"><h3>Contributors</h3><span>tap for details</span></div><div id="contrib"></div></div>
+        <div class="card"><div class="card-title"><h3>Workouts</h3><span>${day.acts.length || 'none'}</span></div><div id="act-list"></div></div>
+        <div class="card"><div class="card-title"><h3>Heart-rate zones</h3><span>${zt ? fmtHours(zt) : ''}</span></div><div id="zones"></div></div>
+      </div>
+      <div class="stack">
+        <div class="metrics" id="m-act"></div>
+        <button class="card tap" data-metric="c.trainBal" style="display:block;width:100%;text-align:left"><div class="card-title"><h3>Load balance, 90 days</h3><span class="chev">›</span></div><div class="legend" id="ld-legend"></div><div class="chart" id="load-line"></div></button>
+        <div class="card"><div class="card-title"><h3>Weekly running</h3><span>km</span></div><div class="chart" id="km-bars"></div></div>
+      </div>
+    </div>`;
+  heroScore($('#hero'), day.activityScore, 'activity', 'Activity', `Strain ${(day.strain ?? 0).toFixed(1)} of 21 · ${fmtInt(day.d.steps)} steps · ${day.im} intensity minutes.`);
+  contributors($('#contrib'), [['a.stay'], ['a.targets'], ['a.freq'], ['a.volume'], ['a.recovery']], day, css('--activity-b'));
+  $('#act-list').innerHTML = day.acts.length ? day.acts.map(actRow).join('') : '<div class="empty">No workouts this day.</div>';
+  bindActs($('#act-list'));
+  const bounds = zoneBounds();
+  $('#zones').innerHTML = zt ? zones.map((z, i) => `<div class="zone-row"><span class="muted">Zone ${i + 1}${bounds[i] ? `<br><span class="small">${bounds[i]}</span>` : ''}</span><div class="bar"><div style="width:${(z / Math.max(...zones)) * 100}%;background:var(--z${i + 1})"></div></div><span class="v">${fmtHours(z)} · ${Math.round((z / zt) * 100)}%</span></div>`).join('') : '<div class="empty">No heart-rate zone data this day.</div>';
+  tiles($('#m-act'), ['strain', 'steps', 'calories', 'intensity', 'distance', 'floors'], day);
+  const loadBy = new Map(M.days.map((d) => [d.key, d.load]));
+  const end = parseDay(cur), sumBack = (t, n) => { let s = 0; for (let i = 0; i < n; i++) s += loadBy.get(dayKey(t - i * DAY)) || 0; return s; };
+  const acute = [], chronic = [];
+  for (let i = 90; i >= 0; i--) { const tt = startOfDay(end - i * DAY); acute.push([tt, Math.round(sumBack(tt, 7))]); chronic.push([tt, Math.round(sumBack(tt, 28) / 4)]); }
+  legend($('#ld-legend'), [[css('--activity-b'), 'Last 7 days', true], [css('--ink-2'), 'Usual week (4-wk avg)', true]]);
+  line($('#load-line'), [{ name: '7-day', color: css('--activity-b'), data: acute }, { name: '4-wk avg', color: css('--ink-2'), data: chronic }], { yFmt: (x) => String(Math.round(x)), height: 140 });
+  const runs = M.acts.filter(isRun), wk = weekStart(parseDay(cur));
+  const weeks = []; for (let i = 11; i >= 0; i--) { const s0 = wk - i * 7 * DAY; const w = runs.filter((a) => a.t >= s0 && a.t < s0 + 7 * DAY); weeks.push({ s0, km: sum(w.map((a) => a.dist)) / 1000, n: w.length, dur: sum(w.map((a) => a.dur)) }); }
+  bars($('#km-bars'), weeks.map((w, i) => ({ label: fmtShort(w.s0), value: round(w.km, 1), color: i === weeks.length - 1 ? css('--activity-b') : css('--surface-3'),
+    tip: `<b>Week of ${fmtShort(w.s0)}</b>${tipRow(null, 'Distance', `${w.km.toFixed(1)} km`)}${tipRow(null, 'Runs', w.n)}${tipRow(null, 'Time', fmtHours(w.dur))}${w.km ? tipRow(null, 'Avg pace', fmtPace(w.dur / w.km)) : ''}` })), { height: 130 });
+}
+function zoneBounds() {
+  const z = M.raw.zones;
+  const list = Array.isArray(z) ? z : z?.heartRateZones || z?.zones || null;
+  const run = Array.isArray(list) ? list.find((x) => /run/i.test(x.sport || '')) || list.find((x) => /default|generic/i.test(x.sport || '')) || list[0] : null;
+  if (!run) return [];
+  const b = [run.zone1Floor, run.zone2Floor, run.zone3Floor, run.zone4Floor, run.zone5Floor, run.maxHeartRateUsed];
+  return b.slice(0, 5).map((lo, i) => (lo != null ? `${lo}–${b[i + 1] ?? '+'} bpm` : ''));
+}
+
+// ===================== EXPLORE =====================
+function viewExplore(v) {
+  const items = [['workouts', 'Workouts', `${M.acts.length} activities, laps, charts`], ['trends', 'Trends', 'Weeks to a year, plus any metric'], ['data', 'Data', 'Every raw field Garmin sent'], ['profile', 'Profile', 'Sync, history, settings']];
+  v.innerHTML = `<div class="explore">${items.map(([r, t, s]) => `<button class="card tap" data-go="${r}"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[r]}</svg></span><span><b>${t}</b><span>${s}</span></span></button>`).join('')}</div>
+    <div class="section-label">Learn about your numbers</div>
+    <div class="chips">${['readiness', 'sleepScore', 'activityScore', 'strain', 'hrv', 'rhr', 'bb', 'stress', 'resp', 'spo2', 'vo2', 'goal5k'].map((k) => `<button data-metric="${k}">${esc(METRICS[k].title)}</button>`).join('')}</div>`;
+  v.querySelectorAll('[data-go]').forEach((b) => (b.onclick = () => go(b.dataset.go)));
+}
 // ===================== shared bits =====================
 function delta(curV, base, { unit = '', dp = 0, higherBetter = true, label = '30-day avg' } = {}) {
   if (curV == null || base == null) return '<span class="flat">—</span>';
@@ -555,7 +1199,6 @@ function delta(curV, base, { unit = '', dp = 0, higherBetter = true, label = '30
   const cls = higherBetter == null ? 'flat' : (higherBetter ? d > 0 : d < 0) ? 'good' : 'bad';
   return `<span class="${cls}">${d > 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(dp)}${unit}</span><span class="muted">vs ${label}</span>`;
 }
-const recent = (key, n) => { const i = M.days.findIndex((d) => d.key === key); return M.days.slice(Math.max(0, i - n + 1), i + 1); };
 
 function metricCard(k, v, unit, d, sparkData, color, fmt) {
   const div = document.createElement('div');
@@ -569,7 +1212,7 @@ function actRow(a) {
   const pace = a.dist ? fmtPace((a.moving || a.dur) / (a.dist / 1000)) : '';
   return `<button class="row" data-act="${a.id}"><div class="ic">${typeIcon(a.type)}</div><div style="min-width:0"><div class="t">${esc(a.name || prettyType(a.type))}</div><div class="s">${fmtDay(a.t)} ${fmtTime(a.t)} · ${fmtClock(a.dur)}${a.dist ? ` · ${fmtKm(a.dist)} · ${pace}` : ''}${a.avgHR ? ` · ${Math.round(a.avgHR)} bpm` : ''}</div></div><div class="chip">${strainFromLoad(a.load, 0).toFixed(1)}<small>STRAIN</small></div></button>`;
 }
-const bindActs = (root) => root.querySelectorAll('[data-act]').forEach((b) => (b.onclick = () => go(`activity/${b.dataset.act}`)));
+const bindActs = (root) => root.querySelectorAll('[data-act]').forEach((b) => (b.onclick = () => go(`workout/${b.dataset.act}`)));
 
 // key/value table of raw fields, with readable values and the raw path underneath
 function kvTable(obj, filter = '') {
@@ -591,200 +1234,6 @@ async function rawCard(node, title, path, fileName) {
   node.innerHTML = `<div class="card-title"><h3>${esc(title)}</h3><span>loading…</span></div>`;
   const { status, body } = await cached(path);
   kvDetails(node, title, status === 200 ? body : null, fileName);
-}
-
-// ===================== TODAY =====================
-function viewToday(v) {
-  const day = M.byKey.get(cur), c = coachFor(day), r = day.recovery, dd = day.d;
-  v.innerHTML = `
-    <div class="card"><div class="dials" id="dials"></div></div>
-    <div class="cols mt">
-      <div class="stack">
-        <div class="card">
-          <div class="coach"><div class="badge" style="background:${c.color}22;color:${c.color}">${c.icon}</div><div><h4>${esc(c.title)}</h4><p>${esc(c.text)}</p></div></div>
-          <div style="margin-top:14px">
-            <div class="small muted">Target strain <b style="color:var(--ink)">${c.range[0]}–${c.range[1]}</b> · now <b style="color:var(--strain)">${(day.strain ?? 0).toFixed(1)}</b></div>
-            <div class="target-bar"><div class="zone" style="left:${(c.range[0] / 21) * 100}%;width:${((c.range[1] - c.range[0]) / 21) * 100}%"></div><div class="now" style="left:${((day.strain || 0) / 21) * 100}%"></div></div>
-            <div class="target-scale"><span>0</span><span>7</span><span>14</span><span>21</span></div>
-          </div>
-        </div>
-        <div class="card"><div class="card-title"><h3>Activities</h3><span>${day.acts.length || 'none'}</span></div><div id="act-list"></div></div>
-        <div class="card" id="goal-card"></div>
-      </div>
-      <div class="stack">
-        <div class="card"><div class="card-title"><h3>Recovery inputs</h3><span>vs your 30-day normal</span></div><div class="metrics" id="m-rec"></div></div>
-        <div class="card"><div class="card-title"><h3>Whole day</h3><span>${fmtDay(day.t)}</span></div><div class="metrics" id="m-day"></div></div>
-      </div>
-    </div>
-    <div class="card mt" id="raw-daily"></div>`;
-  const dials = $('#dials');
-  const add = (svg, cap, sub, target) => { const d = document.createElement('div'); d.className = 'dial'; d.innerHTML = `<button aria-label="${esc(cap)}"></button><div class="cap">${cap}</div><div class="sub">${sub}</div>`; d.firstChild.appendChild(svg); if (target) d.firstChild.onclick = () => go(target); dials.appendChild(d); };
-  add(ring(140, r, 100, recColor(r), { center: r == null ? '–' : `${r}%` }), 'Recovery', r == null ? 'no data' : recWord(r), 'trends');
-  add(ring(140, day.strain, 21, css('--strain'), { center: (day.strain ?? 0).toFixed(1) }), 'Strain', `${day.acts.length} activit${day.acts.length === 1 ? 'y' : 'ies'}`, 'strain');
-  add(ring(140, day.sleepPerf, 100, css('--sleep'), { center: day.sleepPerf == null ? '–' : `${day.sleepPerf}%` }), 'Sleep', day.asleep ? `${fmtHM(day.asleep)} h` : 'no data', 'sleep');
-
-  const l30 = recent(cur, 30);
-  const series = (fn) => l30.map((d) => [d.t, fn(d)]).filter((p) => p[1] != null && isFinite(p[1]));
-  const base = (fn) => round(avg(l30.slice(0, -1).map(fn)), 1);
-  const mr = $('#m-rec');
-  mr.appendChild(metricCard('HRV (overnight)', day.hrv?.last, 'ms', delta(day.hrv?.last, round(day.hrvBase)), series((d) => d.hrv?.last), css('--rec-green')));
-  mr.appendChild(metricCard('Resting HR', dd.rhr, 'bpm', delta(dd.rhr, round(day.rhrBase), { higherBetter: false }), series((d) => d.d.rhr), css('--rec-red')));
-  mr.appendChild(metricCard('Respiration', round(dd.resp, 1), 'brpm', delta(round(dd.resp, 1), base((d) => d.d.resp), { dp: 1, higherBetter: false }), series((d) => round(d.d.resp, 1)), css('--strain')));
-  const spo2 = (d) => d.d.spo2 ?? d.sleep?.spo2;
-  mr.appendChild(metricCard('SpO2', round(spo2(day)), '%', delta(round(spo2(day)), base(spo2)), series(spo2), css('--sleep')));
-  mr.appendChild(metricCard('HRV status', day.hrv?.status ? prettyType(day.hrv.status) : '–', '', day.hrv?.low ? `<span class="muted">balanced ${day.hrv.low}–${day.hrv.high} ms</span>` : ''));
-  mr.appendChild(metricCard('Sleep score', day.sleep?.score, '/100', delta(day.sleep?.score, base((d) => d.sleep?.score)), series((d) => d.sleep?.score), css('--sleep')));
-  const md = $('#m-day');
-  md.appendChild(metricCard('Steps', fmtInt(dd.steps), dd.stepGoal ? `/ ${fmtInt(dd.stepGoal)}` : '', delta(dd.steps, base((d) => d.d.steps)), series((d) => d.d.steps), css('--strain'), fmtInt));
-  md.appendChild(metricCard('Calories', fmtInt(dd.calTotal), 'kcal', dd.calActive != null ? `<span class="muted">${fmtInt(dd.calActive)} active</span>` : '', series((d) => d.d.calTotal), css('--rec-yellow'), fmtInt));
-  md.appendChild(metricCard('Body Battery', dd.bbMax, `/ ${dd.bbMin ?? '–'}`, dd.bbCharged != null ? `<span class="muted">+${dd.bbCharged} / −${dd.bbDrained ?? '–'}</span>` : '<span class="muted">high / low</span>', series((d) => d.d.bbMax), css('--rec-green')));
-  md.appendChild(metricCard('Stress', dd.stress, dd.maxStress ? `/ max ${dd.maxStress}` : '', delta(dd.stress, base((d) => d.d.stress), { higherBetter: false }), series((d) => (d.d.stress >= 0 ? d.d.stress : null)), css('--rec-yellow')));
-  md.appendChild(metricCard('Heart rate', dd.minHR != null ? `${dd.minHR}–${dd.maxHR ?? '–'}` : '–', 'bpm', '<span class="muted">min – max</span>', series((d) => d.d.maxHR), css('--rec-red')));
-  md.appendChild(metricCard('Intensity min', (dd.imMod || 0) + 2 * (dd.imVig || 0), '', `<span class="muted">${dd.imMod ?? 0} mod · ${dd.imVig ?? 0} vig</span>`, series((d) => (d.d.imMod || 0) + 2 * (d.d.imVig || 0)), css('--strain')));
-  md.appendChild(metricCard('Distance', dd.distance != null ? (dd.distance / 1000).toFixed(1) : '–', 'km', '<span class="muted">all day</span>', series((d) => (d.d.distance != null ? round(d.d.distance / 1000, 2) : null)), css('--strain')));
-  md.appendChild(metricCard('Floors', dd.floors != null ? round(dd.floors) : '–', '', '', series((d) => d.d.floors), css('--ink-2')));
-  if (day.weight != null) md.appendChild(metricCard('Weight', day.weight.toFixed(1), 'kg', '', [], null));
-
-  const list = $('#act-list');
-  list.innerHTML = day.acts.length ? day.acts.map(actRow).join('') : '<div class="empty">No activities this day.</div>';
-  bindActs(list);
-  goalCard($('#goal-card'));
-  rawCard($('#raw-daily'), 'All daily summary fields', `/api/raw?kind=daily&key=${cur}`, `daily-${cur}.json`);
-}
-
-function best5k(a) { return a.f5k || (a.dist >= 4950 && a.dist <= 5400 ? a.dur * (5000 / a.dist) : null); }
-function goalCard(node) {
-  const runs = M.acts.filter(isRun);
-  const best = (from) => runs.filter((a) => a.t >= from).map(best5k).filter((x) => x && x > 600).sort((a, b) => a - b)[0];
-  const b90 = best(Date.now() - 90 * DAY), ball = best(0), shown = b90 || ball;
-  const gap = shown ? Math.round(shown - GOAL.seconds) : null;
-  const frac = shown ? clamp((32 * 60 - shown) / (32 * 60 - GOAL.seconds), 0, 1) : 0;
-  node.innerHTML = `<div class="card-title"><h3>Goal · ${esc(GOAL.label)}</h3><span>${b90 ? 'best, last 90 days' : 'best in your data'}</span></div>
-    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><div class="num" style="font-size:44px;font-weight:700;line-height:1">${shown ? fmtClock(shown) : '–'}</div>
-    <div class="small" style="color:${gap != null && gap <= 0 ? 'var(--rec-green)' : 'var(--ink-2)'}">${gap == null ? 'No 5K efforts yet' : gap <= 0 ? `✓ Goal beaten by ${fmtClock(-gap)}` : `${fmtClock(gap)} to go`}</div></div>
-    <div class="target-bar" style="margin-top:12px"><div class="zone" style="left:0;width:${frac * 100}%;background:rgba(76,211,138,.3);border-color:var(--rec-green)"></div></div>
-    <div class="target-scale"><span>32:00</span><span>Goal 27:00</span></div>
-    <div class="small muted" style="margin-top:8px">Goal pace ${fmtPace(GOAL.seconds / 5)} · your best ${shown ? fmtPace(shown / 5) : '–'}</div>`;
-}
-
-// ===================== SLEEP =====================
-// Garmin's "local" sleep timestamps are local wall-clock time stored as if it were UTC.
-const wall = (ts) => { const d = new Date(ts); return d.getUTCHours() + d.getUTCMinutes() / 60; };
-const wallClock = (ts) => { const d = new Date(ts); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`; };
-function viewSleep(v) {
-  const day = M.byKey.get(cur), s = day.sleep;
-  v.innerHTML = `
-    <div class="cols">
-      <div class="stack">
-        <div class="card"><div class="card-title"><h3>Sleep performance</h3><span>night before ${fmtShort(day.t)}</span></div>
-          <div class="big-stat"><div class="dial" id="sleep-dial"></div><div class="facts" id="sleep-facts"></div></div></div>
-        <div class="card"><div class="card-title"><h3>Stages</h3><span>${s ? fmtHours(s.total) + ' asleep' : ''}</span></div><div class="stages" id="stage-bar"></div><div class="stage-list" id="stage-list"></div></div>
-        <div class="card" id="score-card"><div class="card-title"><h3>Sleep score breakdown</h3></div><div class="empty">Loading…</div></div>
-      </div>
-      <div class="stack">
-        <div class="card"><div class="card-title"><h3>Last 14 nights</h3><span>performance %</span></div><div class="chart" id="sleep-bars"></div></div>
-        <div class="card"><div class="card-title"><h3>Stages, last 14 nights</h3><span>hours</span></div><div class="legend" id="st-legend"></div><div class="chart" id="stage-bars"></div></div>
-        <div class="card"><div class="card-title"><h3>Bedtime &amp; wake time</h3><span>last 30 nights</span></div><div class="legend" id="bt-legend"></div><div class="chart" id="bedtime"></div></div>
-        <div class="card"><div class="card-title"><h3>How your need is set</h3></div><p class="small muted" style="margin:0">7.5 h base · +3 min for each strain point above 10 yesterday · +30% of the last 3 nights' sleep debt. This is our estimate, not a Garmin value.</p></div>
-      </div>
-    </div>
-    <div class="card mt" id="raw-sleep"></div>`;
-  $('#sleep-dial').appendChild(ring(130, day.sleepPerf, 100, css('--sleep'), { center: day.sleepPerf == null ? '–' : `${day.sleepPerf}%`, unit: 'PERFORMANCE' }));
-  const facts = [
-    ['Asleep', day.asleep ? fmtHours(day.asleep) : '–'], ['Needed', fmtHours(day.sleepNeed)], ['Garmin sleep score', s?.score ?? '–'],
-    ['Bedtime → wake', s?.start && s?.end ? `${wallClock(s.start)} → ${wallClock(s.end)}` : '–'],
-    ['Awake', s ? fmtHours(s.awake || 0) : '–'], ['Restless / awake count', s?.restless ?? '–'], ['Avg SpO2', s?.spo2 != null ? `${round(s.spo2)}%` : '–'],
-    ['Avg respiration', s?.resp != null ? `${round(s.resp, 1)} brpm` : '–'], ['Sleep stress', s?.stress != null ? round(s.stress, 1) : '–'], ['Overnight HRV', day.hrv?.last ? `${day.hrv.last} ms` : '–'],
-  ];
-  $('#sleep-facts').innerHTML = facts.map(([k, val]) => `<div class="fact-line"><span>${k}</span><b>${esc(val)}</b></div>`).join('');
-  const st = [['deep', 'Deep', '--deep'], ['light', 'Light', '--light'], ['rem', 'REM', '--rem'], ['awake', 'Awake', '--awake']];
-  if (s) {
-    const tot = sum(st.map(([k]) => s[k] || 0)) || 1;
-    for (const [k, l, c] of st) { if (!s[k]) continue; const seg = document.createElement('div'); seg.style.cssText = `flex:${s[k] / tot};background:var(${c})`; hover(seg, tipRow(css(c), l, `${fmtHours(s[k])} · ${Math.round((s[k] / tot) * 100)}%`)); $('#stage-bar').appendChild(seg); }
-    $('#stage-list').innerHTML = st.map(([k, l, c]) => `<div><i style="background:var(${c})"></i>${l}<b>${fmtHM(s[k] || 0)}</b>${Math.round(((s[k] || 0) / tot) * 100)}%</div>`).join('');
-  } else { $('#stage-bar').hidden = true; $('#stage-list').innerHTML = '<div class="empty" style="grid-column:1/-1">No sleep recorded for this night.</div>'; }
-
-  const nights = recent(cur, 14);
-  bars($('#sleep-bars'), nights.map((d) => ({ key: d.key, label: fmtShort(d.t), value: d.sleepPerf, color: css('--sleep'), dim: d.key !== cur, selected: d.key === cur,
-    tip: `<b>${fmtDay(d.t)}</b>${tipRow(css('--sleep'), 'Performance', d.sleepPerf != null ? `${d.sleepPerf}%` : '–')}${tipRow(null, 'Asleep', fmtHours(d.asleep))}${tipRow(null, 'Needed', fmtHours(d.sleepNeed))}${tipRow(null, 'Score', d.sleep?.score ?? '–')}` })),
-  { max: 100, refs: [{ y: 85, label: '85%' }], onPick: (k) => { cur = k; render(); } });
-  legend($('#st-legend'), st.map(([, l, c]) => [css(c), l]));
-  bars($('#stage-bars'), nights.map((d) => ({ key: d.key, label: fmtShort(d.t), parts: st.map(([k]) => (d.sleep?.[k] || 0) / 3600), colors: st.map(([, , c]) => css(c)),
-    tip: `<b>${fmtDay(d.t)}</b>${st.map(([k, l, c]) => tipRow(css(c), l, fmtHours(d.sleep?.[k] || 0))).join('')}` })), { yTick: (x) => `${x}h`, onPick: (k) => { cur = k; render(); } });
-  // bed and wake times as hours after 18:00 so midnight doesn't wrap
-  const after6 = (ts) => { let h = wall(ts); if (h < 18) h += 24; return round(h - 18, 2); };
-  const hh = (x) => { const h = (x + 18) % 24; return `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60) % 60).padStart(2, '0')}`; };
-  const n30 = recent(cur, 30).filter((d) => d.sleep?.start && d.sleep?.end);
-  legend($('#bt-legend'), [[css('--sleep'), 'Fell asleep', true], [css('--rec-yellow'), 'Woke up', true]]);
-  line($('#bedtime'), [{ name: 'Asleep', color: css('--sleep'), data: n30.map((d) => [d.t, after6(d.sleep.start)]) }, { name: 'Woke', color: css('--rec-yellow'), data: n30.map((d) => [d.t, after6(d.sleep.end)]) }], { yFmt: hh, invert: true });
-
-  (async () => {
-    const node = $('#score-card');
-    const { status, body } = await cached(`/api/raw?kind=sleep&key=${cur}`);
-    if (!node.isConnected) return;
-    const scores = status === 200 && body?.sleepScores ? Object.entries(body.sleepScores).filter(([k, x]) => x && typeof x === 'object' && x.value != null && k !== 'overall') : [];
-    node.innerHTML = '<div class="card-title"><h3>Sleep score breakdown</h3><span>from Garmin</span></div>' + (scores.length
-      ? scores.map(([k, x]) => `<div class="score-row"><span>${esc(humanize(k))}${x.qualifierKey ? ` <span class="muted small">· ${esc(prettyType(x.qualifierKey))}</span>` : ''}</span><div class="bar"><div style="width:${clamp(x.value, 0, 100)}%"></div></div><b>${round(x.value, 1)}</b></div>`).join('')
-      : '<div class="empty">Garmin didn\'t send a score breakdown for this night.</div>');
-  })();
-  rawCard($('#raw-sleep'), 'All sleep fields for this night', `/api/raw?kind=sleep&key=${cur}`, `sleep-${cur}.json`);
-}
-
-// ===================== STRAIN =====================
-function viewStrain(v) {
-  const day = M.byKey.get(cur);
-  const zones = [0, 0, 0, 0, 0];
-  for (const a of day.acts) (a.zones || []).forEach((z, i) => { zones[i] += z || 0; });
-  const zt = sum(zones);
-  v.innerHTML = `
-    <div class="cols">
-      <div class="stack">
-        <div class="card"><div class="card-title"><h3>Day strain</h3><span>${fmtDay(day.t)}</span></div>
-          <div class="big-stat"><div class="dial" id="strain-dial"></div><div class="facts">
-            <div class="fact-line"><span>Garmin training load</span><b>${Math.round(day.load) || 0}</b></div>
-            <div class="fact-line"><span>Activities</span><b>${day.acts.length}</b></div>
-            <div class="fact-line"><span>Steps</span><b>${fmtInt(day.d.steps)}</b></div>
-            <div class="fact-line"><span>Intensity minutes</span><b>${(day.d.imMod || 0) + 2 * (day.d.imVig || 0)}</b></div>
-            <div class="fact-line"><span>Active calories</span><b>${fmtInt(day.d.calActive)}</b></div>
-            <div class="fact-line"><span>Max heart rate</span><b>${day.d.maxHR ?? '–'}</b></div>
-          </div></div></div>
-        <div class="card"><div class="card-title"><h3>Heart-rate zones</h3><span>${zt ? fmtHours(zt) + ' in activities' : ''}</span></div><div id="zones"></div></div>
-        <div class="card"><div class="card-title"><h3>Activities</h3></div><div id="act-list"></div></div>
-      </div>
-      <div class="stack">
-        <div class="card"><div class="card-title"><h3>Last 14 days</h3><span>strain 0–21</span></div><div class="chart" id="strain-bars"></div></div>
-        <div class="card"><div class="card-title"><h3>Load balance</h3><span>last 90 days</span></div><div class="legend" id="ld-legend"></div><div class="chart" id="load-line"></div>
-          <p class="small muted" style="margin:8px 0 0">Short-term (7-day total) well above long-term (4-week weekly average) means a big jump in training.</p></div>
-        <div class="card"><div class="card-title"><h3>Weekly running</h3><span>km</span></div><div class="chart" id="km-bars"></div></div>
-      </div>
-    </div>`;
-  $('#strain-dial').appendChild(ring(130, day.strain, 21, css('--strain'), { center: (day.strain ?? 0).toFixed(1), unit: 'STRAIN' }));
-  const bounds = zoneBounds();
-  $('#zones').innerHTML = zt ? zones.map((z, i) => `<div class="zone-row"><span class="muted">Zone ${i + 1}${bounds[i] ? `<br><span class="small">${bounds[i]}</span>` : ''}</span><div class="bar"><div style="width:${(z / Math.max(...zones)) * 100}%;background:var(--z${i + 1})"></div></div><span class="v">${fmtHours(z)} · ${Math.round((z / zt) * 100)}%</span></div>`).join('') : '<div class="empty">No heart-rate zone data this day.</div>';
-  $('#act-list').innerHTML = day.acts.length ? day.acts.map(actRow).join('') : '<div class="empty">No activities this day.</div>';
-  bindActs($('#act-list'));
-  const d14 = recent(cur, 14);
-  bars($('#strain-bars'), d14.map((d) => ({ key: d.key, label: fmtShort(d.t), value: d.strain, color: css('--strain'), dim: d.key !== cur, selected: d.key === cur,
-    tip: `<b>${fmtDay(d.t)}</b>${tipRow(css('--strain'), 'Strain', (d.strain ?? 0).toFixed(1))}${tipRow(null, 'Training load', Math.round(d.load))}${tipRow(null, 'Activities', d.acts.length)}${tipRow(null, 'Recovery', d.recovery != null ? `${d.recovery}%` : '–')}` })),
-  { max: 21, onPick: (k) => { cur = k; render(); } });
-  const loadBy = new Map(M.days.map((d) => [d.t, d.load]));
-  const end = parseDay(cur), sumBack = (t, n) => { let s = 0; for (let i = 0; i < n; i++) s += loadBy.get(startOfDay(t - i * DAY)) || 0; return s; };
-  const acute = [], chronic = [];
-  for (let i = 90; i >= 0; i--) { const tt = startOfDay(end - i * DAY); acute.push([tt, Math.round(sumBack(tt, 7))]); chronic.push([tt, Math.round(sumBack(tt, 28) / 4)]); }
-  legend($('#ld-legend'), [[css('--strain'), '7-day total', true], [css('--ink-2'), '4-week weekly avg', true]]);
-  line($('#load-line'), [{ name: '7-day', color: css('--strain'), data: acute }, { name: '4-wk avg', color: css('--ink-2'), data: chronic }], { yFmt: (x) => String(Math.round(x)) });
-  const runs = M.acts.filter(isRun), wk = weekStart(parseDay(cur));
-  const weeks = []; for (let i = 11; i >= 0; i--) { const s0 = wk - i * 7 * DAY; const w = runs.filter((a) => a.t >= s0 && a.t < s0 + 7 * DAY); weeks.push({ s0, km: sum(w.map((a) => a.dist)) / 1000, n: w.length, dur: sum(w.map((a) => a.dur)) }); }
-  bars($('#km-bars'), weeks.map((w, i) => ({ label: fmtShort(w.s0), value: round(w.km, 1), color: i === weeks.length - 1 ? css('--rec-green') : css('--surface-3'),
-    tip: `<b>Week of ${fmtShort(w.s0)}</b>${tipRow(null, 'Distance', `${w.km.toFixed(1)} km`)}${tipRow(null, 'Runs', w.n)}${tipRow(null, 'Time', fmtHours(w.dur))}${w.km ? tipRow(null, 'Avg pace', fmtPace(w.dur / w.km)) : ''}` })));
-}
-function zoneBounds() {
-  const z = M.raw.zones;
-  const list = Array.isArray(z) ? z : z?.heartRateZones || z?.zones || null;
-  const run = Array.isArray(list) ? list.find((x) => /run/i.test(x.sport || '')) || list.find((x) => /default|generic/i.test(x.sport || '')) || list[0] : null;
-  if (!run) return [];
-  const b = [run.zone1Floor, run.zone2Floor, run.zone3Floor, run.zone4Floor, run.zone5Floor, run.maxHeartRateUsed];
-  return b.slice(0, 5).map((lo, i) => (lo != null ? `${lo}–${b[i + 1] ?? '+'} bpm` : ''));
 }
 
 // ===================== ACTIVITIES =====================
@@ -908,7 +1357,7 @@ function viewTrends(v) {
     <div class="toolbar"><div class="seg" id="tseg">${[7, 30, 90, 365].map((d) => `<button data-d="${d}" aria-pressed="${d === trendDays}">${d === 365 ? '1Y' : `${d}D`}</button>`).join('')}</div></div>
     <div class="cols">
       <div class="stack">
-        <div class="card"><div class="card-title"><h3>Recovery</h3><span id="rec-avg"></span></div><div class="chart" id="t-rec"></div></div>
+        <div class="card"><div class="card-title"><h3>Readiness</h3><span id="rec-avg"></span></div><div class="chart" id="t-rec"></div></div>
         <div class="card"><div class="card-title"><h3>HRV</h3><span>overnight · 7-day avg · balanced range</span></div><div class="chart" id="t-hrv"></div></div>
         <div class="card"><div class="card-title"><h3>Resting heart rate</h3><span>bpm · 7-day avg</span></div><div class="chart" id="t-rhr"></div></div>
         <div class="card"><div class="card-title"><h3>VO2 max</h3><span>from runs</span></div><div class="chart" id="t-vo2"></div></div>
@@ -927,10 +1376,10 @@ function viewTrends(v) {
   $('#tseg').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; trendDays = Number(b.dataset.d); tryStore(() => localStorage.setItem('trendDays', String(trendDays))); render(); };
   const ds = recent(M.days[M.days.length - 1].key, trendDays), t0 = ds[0].t;
   const recs = ds.filter((d) => d.recovery != null);
-  $('#rec-avg').textContent = recs.length ? `avg ${Math.round(avg(recs.map((d) => d.recovery)))}%` : '';
-  bars($('#t-rec'), ds.map((d) => ({ key: d.key, label: fmtShort(d.t), value: d.recovery, color: recColor(d.recovery), tip: `<b>${fmtDay(d.t)}</b>${tipRow(recColor(d.recovery), 'Recovery', d.recovery != null ? `${d.recovery}%` : '–')}${tipRow(null, 'HRV', d.hrv?.last ? `${d.hrv.last} ms` : '–')}${tipRow(null, 'Resting HR', d.d.rhr ? `${d.d.rhr} bpm` : '–')}${tipRow(null, 'Sleep', d.sleepPerf != null ? `${d.sleepPerf}%` : '–')}` })), { max: 100, onPick: (k) => { cur = k; go('today'); } });
+  $('#rec-avg').textContent = recs.length ? `avg ${Math.round(avg(recs.map((d) => d.recovery)))}` : '';
+  bars($('#t-rec'), ds.map((d) => ({ key: d.key, label: fmtShort(d.t), value: d.recovery, color: recColor(d.recovery), tip: `<b>${fmtDay(d.t)}</b>${tipRow(recColor(d.recovery), 'Readiness', d.recovery != null ? `${d.recovery}` : '–')}${tipRow(null, 'HRV', d.hrv?.last ? `${d.hrv.last} ms` : '–')}${tipRow(null, 'Resting HR', d.d.rhr ? `${d.d.rhr} bpm` : '–')}${tipRow(null, 'Sleep', d.sleepScore != null ? `${d.sleepScore}` : '–')}` })), { max: 100, onPick: (k) => { cur = k; go('today'); } });
   $('#str-avg').textContent = `avg ${(avg(ds.map((d) => d.strain)) || 0).toFixed(1)}`;
-  bars($('#t-str'), ds.map((d) => ({ key: d.key, label: fmtShort(d.t), value: d.strain, color: css('--strain'), tip: `<b>${fmtDay(d.t)}</b>${tipRow(css('--strain'), 'Strain', (d.strain ?? 0).toFixed(1))}${tipRow(null, 'Activities', d.acts.length)}` })), { max: 21, onPick: (k) => { cur = k; go('strain'); } });
+  bars($('#t-str'), ds.map((d) => ({ key: d.key, label: fmtShort(d.t), value: d.strain, color: css('--strain'), tip: `<b>${fmtDay(d.t)}</b>${tipRow(css('--strain'), 'Strain', (d.strain ?? 0).toFixed(1))}${tipRow(null, 'Activities', d.acts.length)}` })), { max: 21, onPick: (k) => { cur = k; go('activity'); } });
   const hv = ds.filter((d) => d.hrv?.last).map((d) => [d.t, d.hrv.last]);
   line($('#t-hrv'), [{ name: 'Overnight', color: css('--rec-green'), data: hv, dots: trendDays > 7, faint: true }, { name: '7-day avg', color: css('--rec-green'), data: rolling(hv) }], { yFmt: (x) => `${round(x)} ms`, yTick: String, band: ds.filter((d) => d.hrv?.low).map((d) => [d.t, d.hrv.low, d.hrv.high]) });
   const rh = ds.filter((d) => d.d.rhr).map((d) => [d.t, d.d.rhr]);
@@ -941,7 +1390,7 @@ function viewTrends(v) {
   line($('#t-sb'), [{ name: 'Stress', color: css('--rec-yellow'), data: ds.filter((d) => d.d.stress >= 0).map((d) => [d.t, d.d.stress]) }, { name: 'Body Battery', color: css('--rec-green'), data: ds.filter((d) => d.d.bbMax != null).map((d) => [d.t, d.d.bbMax]) }], { yFmt: String });
   const runs = M.acts.filter((a) => isRun(a) && a.t >= t0), sl = ds.filter((d) => d.asleep);
   $('#t-sum').innerHTML = [
-    ['Green / yellow / red days', `${recs.filter((d) => d.recovery >= 67).length} / ${recs.filter((d) => d.recovery >= 34 && d.recovery < 67).length} / ${recs.filter((d) => d.recovery < 34).length}`],
+    ['Optimal / good / fair / low days', `${recs.filter((d) => d.recovery >= 85).length} / ${recs.filter((d) => d.recovery >= 70 && d.recovery < 85).length} / ${recs.filter((d) => d.recovery >= 60 && d.recovery < 70).length} / ${recs.filter((d) => d.recovery < 60).length}`],
     ['Avg sleep', sl.length ? fmtHours(avg(sl.map((d) => d.asleep))) : '–'], ['Avg HRV', hv.length ? `${round(avg(hv.map((p) => p[1])))} ms` : '–'], ['Avg resting HR', rh.length ? `${round(avg(rh.map((p) => p[1])), 1)} bpm` : '–'],
     ['Runs', `${runs.length} · ${(sum(runs.map((a) => a.dist)) / 1000).toFixed(1)} km`], ['All activities', `${M.acts.filter((a) => a.t >= t0).length}`], ['Avg steps', fmtInt(avg(ds.map((d) => d.d.steps)))],
   ].map(([k, val]) => `<div class="fact-line"><span>${k}</span><b>${val}</b></div>`).join('');
@@ -1052,7 +1501,7 @@ function viewProfile(v) {
         <div class="setting"><div>Log out</div><button class="pill-btn" id="logout">Log out</button></div>
       </div>
     </div></div>
-    <p class="disclaimer">Recovery, Strain and Sleep performance are estimates this app calculates from your Garmin data. They are not Garmin or WHOOP values and are not medical advice.</p>`;
+    <p class="disclaimer">Readiness, Activity, Strain and the contributor scores are estimates this app calculates from your Garmin data. The sleep score is Garmin's own when available. None of this is medical advice.</p>`;
   $('#logout').onclick = async () => { if (!DEMO) await fetch('/api/login', { method: 'DELETE' }); location.reload(); };
   $('#p-sync').onclick = () => sync(false);
   if ($('#p-full')) $('#p-full').onclick = () => { if (confirm('Pull your full Garmin history? It can take a few minutes.')) sync(true); };
@@ -1151,6 +1600,7 @@ function demoApi(path) {
   return none();
 }
 
+
 // ===================== boot =====================
 function start(data, keepPlace = false) {
   M = buildModel(data);
@@ -1164,7 +1614,7 @@ function start(data, keepPlace = false) {
 }
 $('#avatar').onclick = () => go('profile');
 $('#sync-btn').onclick = () => sync(false);
-let rt, lastW = innerWidth; addEventListener('resize', () => { if (Math.abs(innerWidth - lastW) < 40) return; lastW = innerWidth; clearTimeout(rt); rt = setTimeout(render, 200); });
+let rt, lastW = innerWidth; addEventListener('resize', () => { if (Math.abs(innerWidth - lastW) < 40) return; lastW = innerWidth; clearTimeout(rt); rt = setTimeout(() => render(true), 200); });
 
 async function boot() {
   if (DEMO) { DEMO_DATA = demoData(); return start(DEMO_DATA); }
