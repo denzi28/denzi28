@@ -308,6 +308,8 @@ details > summary { cursor: pointer; color: var(--ink-2); font-size: 13px; paddi
 
 /* motion */
 .view { animation: rise .45s var(--ease) both; }
+.view-soft { animation: fade .25s ease both; }
+@keyframes fade { from { opacity: .35; } to { opacity: 1; } }
 .view > * { animation: rise .5s var(--ease) both; }
 .view > *:nth-child(2) { animation-delay: .04s; } .view > *:nth-child(3) { animation-delay: .08s; } .view > *:nth-child(4) { animation-delay: .12s; } .view > *:nth-child(5) { animation-delay: .16s; } .view > *:nth-child(n+6) { animation-delay: .2s; }
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
@@ -829,7 +831,7 @@ function best5kRecent() {
 
 // ===================== sheet =====================
 const sheet = $('#sheet'), scrim = $('#scrim');
-let sheetOpen = false, lastFocus = null;
+let sheetOpen = false, lastFocus = null, ignorePop = false;
 function openSheet(key, dayKeyOverride) {
   const m = METRICS[key]; if (!m) return;
   const day = M.byKey.get(dayKeyOverride || cur);
@@ -856,7 +858,7 @@ function openSheet(key, dayKeyOverride) {
     ${m.tips && m.tips.length ? `<div class="sh-sec"><h4>What helps</h4><ul>${m.tips.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
     ${m.related && m.related.length ? `<div class="sh-sec"><h4>Related</h4><div class="chips">${m.related.filter((k) => METRICS[k]).map((k) => `<button data-metric="${k}">${esc(METRICS[k].title)}</button>`).join('')}</div></div>` : ''}
     <p class="sh-note">${esc(m.note || (m.kind === 'score' ? 'Contributor score calculated by Pulse from your Garmin data.' : 'Measured by Garmin.'))}</p>`;
-  if (!sheetOpen) { lastFocus = document.activeElement; history.pushState({ sheet: 1 }, '', location.hash || '#'); }
+  if (!sheetOpen) { lastFocus = document.activeElement; history.pushState({ sheet: 1 }, '', location.href); }
   sheetOpen = true;
   sheet.classList.add('open'); scrim.classList.add('open'); sheet.setAttribute('aria-hidden', 'false');
   body.scrollTop = 0;
@@ -877,7 +879,8 @@ function closeSheet(fromHistory = false) {
   sheet.classList.remove('open'); scrim.classList.remove('open'); sheet.setAttribute('aria-hidden', 'true');
   sheet.style.transform = '';
   hideTip();
-  if (!fromHistory) history.back();
+  // Pop the entry we pushed on open, and tell popstate not to re-render the page underneath.
+  if (!fromHistory && history.state?.sheet) { ignorePop = true; history.back(); }
   if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
 }
 scrim.onclick = () => closeSheet();
@@ -922,12 +925,19 @@ function navHtml(items, mobile) {
   return items.map((it) => (it ? `<button class="nav-btn" data-go="${it[0]}" ${active === it[0] ? 'aria-current="page"' : ''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[it[0]]}</svg><span>${it[1]}</span></button>` : '<div class="sep"></div>')).join('');
 }
 function go(r) {
-  if (sheetOpen) closeSheet();
+  if (sheetOpen) closeSheet(true);
   const doIt = () => { route = r; history.pushState(null, '', `#${r}`); render(); window.scrollTo({ top: 0 }); };
   if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(doIt); else doIt();
 }
-function selectDay(k) { cur = k; render(true); }
+// Changing day keeps your place on the page and in the day strip.
+function selectDay(k) {
+  if (k === cur) return;
+  const y = scrollY;
+  cur = k; render(true);
+  requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo({ top: y })));
+}
 addEventListener('popstate', () => {
+  if (ignorePop) { ignorePop = false; return; }
   if (sheetOpen) { closeSheet(true); return; }
   route = location.hash.slice(1) || 'today'; render();
 });
@@ -936,32 +946,44 @@ function greeting() { const h = new Date().getHours(); return h < 5 ? 'Good nigh
 function topLeft() {
   const tl = $('#top-left'), b = route.split('/')[0];
   const dayLabel = cur === dayKey(Date.now()) ? 'Today' : cur === dayKey(Date.now() - DAY) ? 'Yesterday' : fmtDay(parseDay(cur));
+  const latest = M.days[M.days.length - 1].key;
+  const jump = DAY_ROUTES.includes(b || 'today') && cur !== latest ? '<button class="pill-btn" id="to-today" style="margin-left:10px;padding:4px 11px;font-size:12px;vertical-align:middle">Today ›</button>' : '';
   if (b === 'today' || b === '') tl.innerHTML = `<div class="greet">${dayLabel === 'Today' ? fmtDay(Date.now()) : dayLabel}</div><h1 class="page-title">${dayLabel === 'Today' ? greeting() : 'Your day'}</h1>`;
   else if (DAY_ROUTES.includes(b)) tl.innerHTML = `<div class="greet">${dayLabel}</div><h1 class="page-title">${({ readiness: 'Readiness', sleep: 'Sleep', activity: 'Activity' })[b]}</h1>`;
   else if (b === 'workout') { tl.innerHTML = '<button class="back" id="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>Workouts</button>'; $('#back').onclick = () => go('workouts'); }
   else tl.innerHTML = `<h1 class="page-title">${({ workouts: 'Workouts', trends: 'Trends', data: 'Data', profile: 'Profile', explore: 'Explore' })[b] || ''}</h1>`;
+  if (jump) { $('.greet', tl).insertAdjacentHTML('beforeend', jump); $('#to-today').onclick = () => { selectDay(latest); const w = $('#week'); if (w) w.scrollTo({ left: w.scrollWidth, behavior: 'smooth' }); }; }
 }
+let stripKind = null;
 function weekStrip() {
   const host = $('#weekstrip'), b = route.split('/')[0] || 'today';
-  if (!DAY_ROUTES.includes(b)) { host.innerHTML = ''; return; }
-  const list = M.days.slice(-28);
-  const scoreOf = (d) => (b === 'sleep' ? d.sleepScore : b === 'activity' ? d.activityScore : d.readiness);
-  const st = stops(b === 'today' ? 'readiness' : b);
-  host.innerHTML = '<div class="week" id="week"></div>';
-  const wrap = $('#week');
-  for (const d of list) {
-    const btn = document.createElement('button');
-    btn.className = 'wday'; btn.dataset.k = d.key;
-    if (d.key === cur) btn.setAttribute('aria-current', 'date');
-    btn.setAttribute('aria-label', `${fmtDay(d.t)}${scoreOf(d) != null ? `, score ${scoreOf(d)}` : ''}`);
-    btn.innerHTML = `<span class="l">${WD[new Date(d.t).getDay()].slice(0, 2)}</span>`;
-    btn.appendChild(ring(28, scoreOf(d), 100, st, { thick: 3.5 }));
-    btn.insertAdjacentHTML('beforeend', `<span class="n">${new Date(d.t).getDate()}</span>`);
-    btn.onclick = () => selectDay(d.key);
-    wrap.appendChild(btn);
+  if (!DAY_ROUTES.includes(b)) { host.innerHTML = ''; stripKind = null; return; }
+  const kind = b === 'today' ? 'readiness' : b;
+  let wrap = $('#week');
+  if (stripKind !== kind || !wrap) {
+    const scoreOf = (d) => (kind === 'sleep' ? d.sleepScore : kind === 'activity' ? d.activityScore : d.readiness);
+    const keep = wrap ? wrap.scrollLeft : null;
+    host.innerHTML = '<div class="week" id="week"></div>';
+    wrap = $('#week');
+    for (const d of M.days.slice(-28)) {
+      const btn = document.createElement('button');
+      btn.className = 'wday'; btn.dataset.k = d.key;
+      btn.setAttribute('aria-label', `${fmtDay(d.t)}${scoreOf(d) != null ? `, score ${scoreOf(d)}` : ''}`);
+      btn.innerHTML = `<span class="l">${WD[new Date(d.t).getDay()].slice(0, 2)}</span>`;
+      btn.appendChild(ring(28, scoreOf(d), 100, stops(kind), { thick: 3.5 }));
+      btn.insertAdjacentHTML('beforeend', `<span class="n">${new Date(d.t).getDate()}</span>`);
+      btn.onclick = () => selectDay(d.key);
+      wrap.appendChild(btn);
+    }
+    stripKind = kind;
+    wrap.scrollLeft = keep ?? wrap.scrollWidth;
   }
+  wrap.querySelectorAll('.wday').forEach((x) => (x.dataset.k === cur ? x.setAttribute('aria-current', 'date') : x.removeAttribute('aria-current')));
+  // Only nudge the strip if the selected day has slid out of view.
   const sel = $('[aria-current="date"]', wrap);
-  if (sel) wrap.scrollLeft = sel.offsetLeft - wrap.clientWidth + sel.offsetWidth + 8;
+  if (sel && (sel.offsetLeft < wrap.scrollLeft || sel.offsetLeft + sel.offsetWidth > wrap.scrollLeft + wrap.clientWidth)) {
+    wrap.scrollTo({ left: sel.offsetLeft - wrap.clientWidth / 2 + sel.offsetWidth / 2, behavior: 'smooth' });
+  }
 }
 
 function render(dayOnly = false) {
@@ -973,7 +995,7 @@ function render(dayOnly = false) {
   const b = route.split('/')[0] || 'today';
   setGlow(DAY_ROUTES.includes(b) ? (b === 'sleep' ? day.sleepScore : b === 'activity' ? day.activityScore : day.readiness) : null);
   const v = $('#view');
-  v.className = ''; void v.offsetWidth; v.className = 'view'; v.innerHTML = '';
+  v.className = ''; void v.offsetWidth; v.className = dayOnly ? 'view-soft' : 'view'; v.innerHTML = '';
   const [base, arg] = route.split('/');
   const views = { today: viewToday, readiness: viewReadiness, sleep: viewSleep, activity: viewActivity2, workouts: viewActivities, workout: viewActivity, trends: viewTrends, data: viewData, profile: viewProfile, explore: viewExplore };
   (views[base] || viewToday)(v, arg);
@@ -1018,10 +1040,9 @@ function dayBars(node, key, fn, kind, n = 14, opts = {}) {
 
 // ===================== TODAY =====================
 function viewToday(v) {
-  const day = M.byKey.get(cur), c = coachFor(day);
+  const day = M.byKey.get(cur);
   v.innerHTML = `
     <div class="trio" id="trio"></div>
-    <div class="card mt"><div class="coach"><div class="badge" style="background:color-mix(in srgb, ${c.color} 18%, transparent);color:${c.color}">${c.icon}</div><div><h4>${esc(c.title)}</h4><p>${esc(c.text)}</p></div></div></div>
     <div class="cols mt">
       <div class="stack">
         <div class="card"><div class="card-title"><h3>Your day</h3><span>${fmtDay(day.t)}</span></div><div class="timeline" id="tl"></div></div>
@@ -1604,6 +1625,7 @@ function demoApi(path) {
 // ===================== boot =====================
 function start(data, keepPlace = false) {
   M = buildModel(data);
+  stripKind = null;
   $('#login').hidden = true; $('#app').hidden = false;
   $('#demo-pill').hidden = !DEMO;
   if (!M.days.length) { $('#view').innerHTML = '<div class="card empty">No data yet. Tap the sync button to pull your Garmin history.</div>'; return; }
