@@ -674,7 +674,11 @@ function buildModel(D) {
 }
 
 // When to be asleep tonight: your usual wake time minus tonight's sleep need and ~15 min to drift off.
+const minsToClock = (m) => { m = ((Math.round(m) % 1440) + 1440) % 1440; return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; };
 function bedtimeFor(day) {
+  // Garmin's own recommendation for tonight, when the watch gives one.
+  const g = day.sleep;
+  if (g?.bedFrom != null) return { at: minsToClock(g.bedTo ?? g.bedFrom), range: `${minsToClock(g.bedFrom)}–${minsToClock(g.bedTo ?? g.bedFrom)}`, need: g.nextNeed || g.need || NEED, garmin: true };
   const ends = recent(day.key, 14).filter((d) => d.sleep?.end).map((d) => wall(d.sleep.end)).sort((a, b) => a - b);
   const wake = ends.length ? ends[Math.floor(ends.length / 2)] : 7;
   const debt = sum(recent(day.key, 3).map((d) => (d.asleep ? Math.max(0, d.sleepNeed - d.asleep) : 0))) / 3;
@@ -700,7 +704,7 @@ function coachFor(day) {
     const after18 = (x) => (x < 12 ? x + 24 : x) - 18;
     const [bh, bm] = bed.at.split(':').map(Number);
     if (after18(h) > after18(bh + bm / 60)) return { when: 'Tonight', icon: '☾', color: C.night, title: 'Past your bedtime', text: `Your target was ${bed.at}. Every extra hour awake now comes out of tomorrow’s readiness — put the phone down and get to sleep.` };
-    return { when: 'Tonight', icon: '☾', color: C.night, title: 'Time to wind down', text: `${trained ? 'You trained today, so sleep is where the gains happen.' : 'Recovery starts now.'} Aim to be asleep by ${bed.at} to get the ${fmtHours(bed.need)} you need. Dim the lights, put the phone away and keep the room cool.` };
+    return { when: 'Tonight', icon: '☾', color: C.night, title: 'Time to wind down', text: `${trained ? 'You trained today, so sleep is where the gains happen.' : 'Recovery starts now.'} Aim to be asleep by ${bed.at}${bed.garmin ? ` (Garmin suggests ${bed.range})` : ''} to get the ${fmtHours(bed.need)} you need. Dim the lights, put the phone away and keep the room cool.` };
   }
   if (r == null) return { when: 'Today', icon: '•', color: C.muted, title: 'Waiting for your data', text: 'Sleep with your watch on and your readiness will be ready in the morning.' };
   const band = r >= 80 ? 'high' : r >= 65 ? 'mid' : 'low';
@@ -803,17 +807,23 @@ const METRICS = {
   stress: { title: 'Stress', unit: '/ 100', value: (d) => (d.d.stress >= 0 ? d.d.stress : null), show: (d) => (d.d.stress >= 0 ? d.d.stress : '–'), sub: (d) => (d.d.maxStress ? `Peak ${d.d.maxStress} today` : 'Average for the day'), series: S((d) => (d.d.stress >= 0 ? d.d.stress : null)), fmt: String, color: '--fair', higherBetter: false, base: (d) => avg(recent(d.key, 30).slice(0, -1).map((x) => (x.d.stress >= 0 ? x.d.stress : null))),
     what: 'Garmin’s stress level reads your heart rate variability through the day. Low HRV while you’re not moving is counted as stress — physical or mental.',
     how: ['0–25 rest · 26–50 low · 51–75 medium · 76–100 high.', 'Time spent exercising isn’t counted.'],
+    extra: (node, day) => {
+      const d = day.d, parts = [['Rest', d.stressRest, '--optimal'], ['Low', d.stressLow, '--good'], ['Medium', d.stressMed, '--fair'], ['High', d.stressHigh, '--low'], ['Activity', d.stressActivity, '--muted']].filter((p) => p[1]);
+      const tot = sum(parts.map((p) => p[1]));
+      if (!tot) { node.innerHTML = ''; return; }
+      node.innerHTML = `<div class="sh-sec" style="margin-top:0"><h4>Time in each stress level</h4><div class="stages">${parts.map(([l, v, c]) => `<div style="flex:${v / tot};background:var(${c})" title="${l}"></div>`).join('')}</div>${parts.map(([l, v, c]) => `<div class="fact-line"><span><i style="display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;background:var(${c})"></i>${l}</span><b>${fmtHours(v)} · ${Math.round((v / tot) * 100)}%</b></div>`).join('')}${d.stressQualifier ? `<p class="small muted" style="margin-top:8px">Garmin: ${esc(niceCode(d.stressQualifier))}</p>` : ''}</div>`;
+    },
     tips: ['A few minutes of slow breathing (around 6 breaths a minute) visibly lowers it.'], related: ['bb'] },
   bb: { title: 'Body Battery', unit: '', value: (d) => d.bbr?.high ?? d.d.bbMax, show: (d) => d.bbr?.high ?? d.d.bbMax ?? '–',
     sub: (d) => { const c = d.bbr?.charged ?? d.d.bbCharged, x = d.bbr?.drained ?? d.d.bbDrained; return `High ${d.bbr?.high ?? d.d.bbMax ?? '–'} · low ${d.bbr?.low ?? d.d.bbMin ?? '–'}${c != null ? ` · charged +${c} · drained −${x ?? '–'}` : ''}`; },
     series: S((d) => d.bbr?.high ?? d.d.bbMax), fmt: String, color: '--optimal', higherBetter: true,
     noGeneric: true, extra: (node, day) => { bbDetail(node, day, { full: true }); },
     what: 'Garmin’s estimate of your energy reserves from 0 to 100. It charges while you rest and sleep and drains with activity and stress.',
-    how: ['The curve shows the level through the day, measured every few minutes.', 'Shaded blocks are the events Garmin detected — sleep, rest, workouts and stressful stretches — with how much each one added or took away.', 'Charged and drained are the day’s totals in each direction.'],
+    how: ['Dots are Garmin’s own readings — its Personal API sends only a few per day. Between them the line follows Garmin’s events and always passes through every reading.', 'High, low and latest come from Garmin’s daily summary.', 'Shaded blocks are the events Garmin detected — sleep, rest, workouts and stressful stretches — with how much each one added or took away.', 'Charged and drained are the day’s totals in each direction.'],
     tips: ['Waking below ~50 regularly suggests you need more or better sleep.', 'Long stressful stretches drain it as surely as a workout — short breathing breaks help.'], related: ['stress', 'sleepScore', 'readiness'] },
   steps: { title: 'Steps', unit: '', value: (d) => d.d.steps, show: (d) => fmtInt(d.d.steps), sub: (d) => (d.d.stepGoal ? `Goal ${fmtInt(d.d.stepGoal)}` : 'Daily total'), series: S((d) => d.d.steps), fmt: fmtInt, color: '--strain', higherBetter: true, chart: 'bars',
     what: 'Every step your Garmin counted today, including runs.', how: ['Your step goal comes from Garmin (it adapts automatically unless you’ve set one).'], tips: ['Steps between workouts matter for recovery and overall health, not just total exercise.'], related: ['a.stay'] },
-  calories: { title: 'Calories', unit: 'kcal', value: (d) => d.d.calTotal, show: (d) => fmtInt(d.d.calTotal), sub: (d) => (d.d.calActive != null ? `${fmtInt(d.d.calActive)} active · ${fmtInt(d.d.calTotal - d.d.calActive)} resting` : 'Total burned'), series: S((d) => d.d.calTotal), fmt: fmtInt, color: '--fair', chart: 'bars',
+  calories: { title: 'Calories', unit: 'kcal', value: (d) => d.d.calTotal, show: (d) => fmtInt(d.d.calTotal), sub: (d) => (d.d.calActive != null ? `${fmtInt(d.d.calActive)} active · ${fmtInt(d.d.calResting ?? d.d.calTotal - d.d.calActive)} resting` : 'Total burned'), series: S((d) => d.d.calTotal), fmt: fmtInt, color: '--fair', chart: 'bars',
     what: 'Total energy burned today: your resting metabolism plus everything active.', how: ['Estimated by Garmin from your profile, heart rate and movement — treat it as a rough guide.'], tips: [], related: ['steps'] },
   intensity: { title: 'Intensity minutes', unit: 'min', value: (d) => d.im, show: (d) => d.im, sub: (d) => `${d.d.imMod ?? 0} moderate · ${d.d.imVig ?? 0} vigorous${d.d.imGoal ? ` · weekly goal ${d.d.imGoal}` : ''}`, series: S((d) => d.im), fmt: (v) => `${v} min`, color: '--strain', chart: 'bars',
     what: 'Minutes spent at moderate or vigorous effort. Vigorous minutes count double.', how: ['Health guidelines suggest 150 a week (about 22 a day).'], tips: [], related: ['a.targets'] },
@@ -931,6 +941,28 @@ function parseBBReport(it) {
   const fb = it.endOfDayBodyBatteryDynamicFeedbackEvent || it.bodyBatteryDynamicFeedbackEvent;
   return { values, events, charged: it.charged ?? it.bodyBatteryCharged ?? null, drained: it.drained ?? it.bodyBatteryDrained ?? null, feedback: fb?.feedbackShortType || fb?.feedbackLongType || null };
 }
+// Garmin's Personal API sends only a handful of Body Battery readings per day (about every 4 h).
+// Between two readings, events (sleep, workouts, stress, rest) move the level by their reported
+// impact over their duration, and the rest of the change is spread over the remaining time, so
+// the line always passes exactly through every real reading.
+function bbCurve(anchors, events) {
+  if (anchors.length < 2 || anchors.length > 60) return anchors;
+  const STEP = 5 * 60e3;
+  const evs = events.filter((e) => e.dur > 0 && typeof e.impact === 'number').map((e) => ({ s: e.start, e: e.start + e.dur, rate: e.impact / e.dur }));
+  const rateAt = (t) => evs.reduce((r, x) => (t >= x.s && t < x.e ? r + x.rate : r), 0);
+  const out = [];
+  for (let i = 0; i < anchors.length - 1; i++) {
+    const [t0, l0] = anchors[i], [t1, l1] = anchors[i + 1];
+    let evSum = 0, free = 0;
+    for (let t = t0; t < t1; t += STEP) { const dt = Math.min(STEP, t1 - t), r = rateAt(t); if (r) evSum += r * dt; else free += dt; }
+    const drift = free > 0 ? (l1 - l0 - evSum) / free : 0;
+    const scale = free > 0 || !evSum ? 1 : (l1 - l0) / evSum;
+    let lvl = l0;
+    for (let t = t0; t < t1; t += STEP) { out.push([t, round(clamp(lvl, 0, 100), 1)]); const dt = Math.min(STEP, t1 - t), r = rateAt(t); lvl += r ? r * dt * scale : drift * dt; }
+  }
+  out.push(anchors[anchors.length - 1]);
+  return out;
+}
 const niceFeedback = (s) => (s ? prettyType(String(s).replace(/^(EVENT_|BODY_BATTERY_|DAY_|END_OF_DAY_)/, '')) : '');
 
 async function bbDetail(node, day, { full = false } = {}) {
@@ -939,25 +971,30 @@ async function bbDetail(node, day, { full = false } = {}) {
   if (!node.isConnected) return;
   const rep = status === 200 && body ? parseBBReport(body) : null;
   const lv = rep?.values || [], evs = rep?.events || [];
+  const sparse = lv.length > 1 && lv.length <= 60;
+  const curve = sparse ? bbCurve(lv, evs) : lv;
   const charged = rep?.charged ?? day.bbr?.charged ?? day.d.bbCharged, drained = rep?.drained ?? day.bbr?.drained ?? day.d.bbDrained;
-  const high = lv.length ? Math.max(...lv.map((p) => p[1])) : day.d.bbMax, low = lv.length ? Math.min(...lv.map((p) => p[1])) : day.d.bbMin;
+  // Garmin's daily summary has the true high/low/latest; the few readings can miss the peaks.
+  const high = day.d.bbMax ?? (lv.length ? Math.max(...lv.map((p) => p[1])) : null), low = day.d.bbMin ?? (lv.length ? Math.min(...lv.map((p) => p[1])) : null);
+  const now = day.d.bbLatest ?? (lv.length ? lv[lv.length - 1][1] : null);
   const isToday = day.key === dayKey(Date.now());
   const types = [...new Set(evs.map((e) => String(e.type).toUpperCase()))];
   node.innerHTML = `
     <div class="sh-stats" style="margin:0 0 12px;grid-template-columns:repeat(4,minmax(0,1fr))">
-      <div><span>${isToday ? 'Now' : 'End of day'}</span><b>${lv.length ? lv[lv.length - 1][1] : '–'}</b></div>
+      <div><span>${isToday ? 'Latest' : 'End of day'}</span><b>${now ?? '–'}</b></div>
       <div><span>Range</span><b style="white-space:nowrap">${low ?? '–'}–${high ?? '–'}</b></div>
       <div><span>Charged</span><b class="good">${charged != null ? `+${charged}` : '–'}</b></div>
       <div><span>Drained</span><b class="bad">${drained != null ? `−${drained}` : '–'}</b></div>
     </div>
-    ${types.length ? `<div class="legend bb-legend"></div>` : ''}
+    <div class="legend bb-legend"></div>
     <div class="chart bb-chart"></div>
-    ${rep?.feedback ? `<p class="small muted" style="margin:10px 0 0">Garmin: ${esc(niceFeedback(rep.feedback))}</p>` : ''}
+    ${sparse ? `<p class="small muted" style="margin:8px 0 0">Garmin sends ${lv.length} readings for this day (dots). The line between them follows the events Garmin detected.</p>` : ''}
+    ${rep?.feedback ? `<p class="small muted" style="margin:6px 0 0">Garmin: ${esc(niceFeedback(rep.feedback))}</p>` : ''}
     <div class="timeline bb-events" style="margin-top:12px"></div>
     ${full ? '<div class="sh-sec"><h4>Charged vs drained, last 14 days</h4><div class="chart bb-14"></div></div>' : ''}`;
-  if (types.length) legend($('.bb-legend', node), [[css('--optimal'), 'Level', true], ...types.map((t) => [css(evInfo(t)[1]), evInfo(t)[0]])]);
+  if (lv.length) legend($('.bb-legend', node), [...(sparse ? [[css('--ink'), 'Garmin reading'], [css('--optimal'), 'Between readings', true]] : [[css('--optimal'), 'Level', true]]), ...types.map((t) => [css(evInfo(t)[1]), evInfo(t)[0]])]);
   if (lv.length) {
-    line($('.bb-chart', node), [{ name: 'Body Battery', color: css('--optimal'), data: lv }], { height: full ? 170 : 140, yDomain: [0, 100], xFmt: (t) => fmtTime(t), xTick: (t) => fmtTime(t), yFmt: String, gapX: 45 * 60e3, xBands: evs.filter((e) => e.dur).map((e) => ({ x0: e.start, x1: e.start + e.dur, color: css(evInfo(e.type)[1]) })) });
+    line($('.bb-chart', node), [{ name: sparse ? 'Estimated' : 'Body Battery', color: css('--optimal'), data: curve }, ...(sparse ? [{ name: 'Garmin reading', color: css('--ink'), data: lv, dots: true, r: 3.5 }] : [])], { height: full ? 170 : 140, yDomain: [0, 100], xFmt: (t) => fmtTime(t), xTick: (t) => fmtTime(t), yFmt: String, gapX: 45 * 60e3, xBands: evs.filter((e) => e.dur).map((e) => ({ x0: e.start, x1: e.start + e.dur, color: css(evInfo(e.type)[1]) })) });
   } else {
     $('.bb-chart', node).innerHTML = `<div class="empty">${status === 200 ? 'Garmin has no Body Battery curve for this day.' : 'The detailed Body Battery isn’t loaded yet — tap the sync button (↻) at the top.'}</div>`;
   }
@@ -1307,6 +1344,7 @@ function viewSleep(v) {
   $('#facts').innerHTML = facts.map(([k, val, m]) => `<button class="fact-line" data-metric="${m}"><span>${k}</span><b>${esc(val)}</b></button>`).join('');
   const gs = [
     ['Sleep need', s?.need ? fmtHours(s.need) : null], ['Need tonight', s?.nextNeed ? fmtHours(s.nextNeed) : null],
+    ['Suggested bedtime', s?.bedFrom != null ? `${minsToClock(s.bedFrom)}–${minsToClock(s.bedTo ?? s.bedFrom)}` : null], ['Why the need changed', s?.needNote ? niceCode(s.needNote) : null],
     ['Insight', s?.insight ? niceCode(s.insight) : null], ['Feedback', s?.feedback ? niceCode(s.feedback) : null],
     ['HRV status', day.hrv?.feedback ? niceCode(day.hrv.feedback) : day.hrv?.status ? niceCode(day.hrv.status) : null],
   ].filter((x) => x[1]);
@@ -1485,7 +1523,7 @@ async function viewActivity(v, id) {
     ['Ground contact', a.gct ? `${Math.round(a.gct)} ms` : null], ['Vertical osc.', a.vo ? `${a.vo.toFixed(1)} cm` : null], ['Vertical ratio', a.vr ? `${a.vr.toFixed(1)}%` : null], ['Steps', a.steps ? fmtInt(a.steps) : null],
     ['Fastest 1 km', a.f1k ? fmtClock(a.f1k) : null], ['Fastest mile', a.f1mi ? fmtClock(a.f1mi) : null], ['Fastest 5 km', a.f5k ? fmtClock(a.f5k) : null], ['Fastest 10 km', a.f10k ? fmtClock(a.f10k) : null],
     ['Temperature', a.maxTemp != null ? `${Math.round(a.minTemp ?? a.maxTemp)}–${Math.round(a.maxTemp)} °C` : null],
-    ['Training effect', a.teLabel ? niceCode(a.teLabel) : null], ['How it felt', a.feel != null ? (['Very weak', 'Weak', 'Normal', 'Strong', 'Very strong'][Math.min(4, Math.round(a.feel / 25))] || a.feel) : null],
+    ['Body Battery', a.bbImpact != null ? `${a.bbImpact > 0 ? '+' : '−'}${Math.abs(a.bbImpact)}` : null], ['Training effect', a.teLabel ? niceCode(a.teLabel) : null], ['How it felt', a.feel != null ? (['Very weak', 'Weak', 'Normal', 'Strong', 'Very strong'][Math.min(4, Math.round(a.feel / 25))] || a.feel) : null],
     ['Perceived effort', a.rpe != null ? `${round(a.rpe > 10 ? a.rpe / 10 : a.rpe, 1)} / 10` : null], ['Max power', a.maxPower ? `${Math.round(a.maxPower)} W` : null],
     ['Normalized power', a.normPower ? `${Math.round(a.normPower)} W` : null], ['Recovery time', a.recovery ? fmtHours(a.recovery > 300 ? a.recovery : a.recovery * 60) : null],
     ['Intensity min', a.moderateMin != null || a.vigorousMin != null ? `${a.moderateMin ?? 0} mod · ${a.vigorousMin ?? 0} vig` : null], ['Sweat loss', a.sweat ? `${Math.round(a.sweat)} ml` : null],
@@ -1808,11 +1846,11 @@ function demoBB(k, D) {
     if (t >= stress.s && t < stress.e) d = -0.35;
     if (t >= rest.s && t < rest.e) d = 0.25;
     const nl = clamp(lvl + d * (0.7 + r() * 0.6), 5, 100); if (nl > lvl) charged += nl - lvl; else drained += lvl - nl; lvl = nl;
-    rows.push([t, 'MEASURED', Math.round(lvl), 3]);
+    if (Math.round((t - t0) / 60e3) % 240 === 0 || t + 3 * 60e3 > end) rows.push([t, Math.round(lvl)]);
   }
   const ev = (type, a, b, impact, fb) => ({ eventType: type, eventStartTimeGmt: new Date(a).toISOString().replace('Z', ''), timezoneOffset: 0, durationInMilliseconds: b - a, bodyBatteryImpact: impact, feedbackType: fb, shortFeedback: fb });
   const events = [ev('SLEEP', t0, wake, Math.round(charged * 0.8), 'EVENT_SLEEP_GOOD_RECOVERY'), ...acts.map((a) => ev('ACTIVITY', a.s, a.e, -Math.round(a.load / 8), 'EVENT_ACTIVITY_TEMPO')), ...(stress.s < end ? [ev('STRESS', stress.s, stress.e, -Math.round(8 + r() * 6), 'EVENT_STRESSFUL_PERIOD')] : []), ...(rest.s < end ? [ev('RECOVERY', rest.s, rest.e, Math.round(3 + r() * 5), 'EVENT_RESTFUL_PERIOD')] : [])];
-  return { date: k, charged: Math.round(charged), drained: Math.round(drained), bodyBatteryValueDescriptorDTOList: ['timestamp', 'bodyBatteryStatus', 'bodyBatteryLevel', 'bodyBatteryVersion'].map((key, i) => ({ bodyBatteryValueDescriptorIndex: i, bodyBatteryValueDescriptorKey: key })), bodyBatteryValuesArray: rows, bodyBatteryActivityEvent: events, endOfDayBodyBatteryDynamicFeedbackEvent: { feedbackShortType: 'DAY_RECOVERING_AND_INACTIVE' } };
+  return { date: k, charged: Math.round(charged), drained: Math.round(drained), bodyBatteryValueDescriptorDTOList: ['timestamp', 'bodyBatteryLevel'].map((key, i) => ({ bodyBatteryValueDescriptorIndex: i, bodyBatteryValueDescriptorKey: key })), bodyBatteryValuesArray: rows, bodyBatteryActivityEvent: events, endOfDayBodyBatteryDynamicFeedbackEvent: { feedbackShortType: 'DAY_RECOVERING_AND_INACTIVE' } };
 }
 function demoApi(path) {
   const D = DEMO_DATA, u = new URL(path, location.origin), q = Object.fromEntries(u.searchParams);
@@ -1872,7 +1910,7 @@ let rt, lastW = innerWidth; addEventListener('resize', () => { if (Math.abs(inne
 async function boot() {
   if (DEMO) {
     DEMO_DATA = demoData();
-    DEMO_DATA.bb = Object.fromEntries(Object.keys(DEMO_DATA.daily).map((k) => { const p = parseBBReport(demoBB(k, DEMO_DATA)); const l = p.values.map((v) => v[1]); return [k, { charged: p.charged, drained: p.drained, high: Math.max(...l), low: Math.min(...l), last: l.at(-1) }]; }));
+    DEMO_DATA.bb = Object.fromEntries(Object.keys(DEMO_DATA.daily).map((k) => { const p = parseBBReport(demoBB(k, DEMO_DATA)); const l = p.values.map((v) => v[1]); Object.assign(DEMO_DATA.daily[k], { bbMax: Math.max(...l), bbMin: Math.min(...l), bbLatest: l.at(-1), bbCharged: p.charged, bbDrained: p.drained }); return [k, { charged: p.charged, drained: p.drained, high: Math.max(...l), low: Math.min(...l), last: l.at(-1) }]; }));
     return start(DEMO_DATA);
   }
   const { status, body } = await api('/api/data');
