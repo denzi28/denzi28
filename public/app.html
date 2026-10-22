@@ -670,12 +670,47 @@ function buildModel(D) {
   return { days, acts, byKey, byId: new Map(acts.map((a) => [String(a.id), a])), raw: D };
 }
 
+// When to be asleep tonight: your usual wake time minus tonight's sleep need and ~15 min to drift off.
+function bedtimeFor(day) {
+  const ends = recent(day.key, 14).filter((d) => d.sleep?.end).map((d) => wall(d.sleep.end)).sort((a, b) => a - b);
+  const wake = ends.length ? ends[Math.floor(ends.length / 2)] : 7;
+  const debt = sum(recent(day.key, 3).map((d) => (d.asleep ? Math.max(0, d.sleepNeed - d.asleep) : 0))) / 3;
+  const need = NEED + Math.max(0, (day.strain || 0) - 10) * 180 + 0.3 * debt;
+  let h = (wake - need / 3600 - 0.25 + 48) % 24;
+  h = Math.round(h * 12) / 12;
+  return { at: `${String(Math.floor(h) % 24).padStart(2, '0')}:${String(Math.round((h % 1) * 60) % 60).padStart(2, '0')}`, need };
+}
+
+// Suggestions follow the clock: plan in the morning, adjust in the afternoon,
+// recover in the evening, wind down at night. Past days get a short recap instead.
 function coachFor(day) {
   const r = day.readiness, gp = GOAL.seconds / 5;
-  if (r == null) return { icon: '•', color: css('--muted'), title: 'Waiting for your data', text: 'Sleep with your watch on and your readiness will be ready in the morning.' };
-  if (r >= 80) return { icon: '↑', color: css('--optimal'), title: 'A good day to push', text: `Your body is well recovered. For your 5K: 5 × 1 km at ${fmtClock(gp - 12)}–${fmtClock(gp - 6)} /km with 2 min easy jogging between.` };
-  if (r >= 65) return { icon: '→', color: css('--good'), title: 'Keep it steady', text: `Recovered, but not fully. An easy 30–40 min run at ${fmtClock(gp + 50)} /km or slower builds fitness without digging a hole.` };
-  return { icon: '↓', color: css('--low'), title: 'Take it easy today', text: 'Signs of strain are showing. Rest, walk, stretch, and get to bed early — hard training now would cost more than it gives.' };
+  const now = new Date(), h = now.getHours() + now.getMinutes() / 60;
+  const trained = day.acts.some((a) => (a.load || 0) >= 20 || (a.dur || 0) >= 1200);
+  const C = { high: css('--optimal'), mid: css('--good'), low: css('--low'), night: css('--sleep-a'), muted: css('--muted') };
+  if (day.key !== dayKey(Date.now())) {
+    const bits = [r != null ? `${LABEL(r).toLowerCase()} readiness (${r})` : null, day.acts.length ? `${day.acts.length} workout${day.acts.length > 1 ? 's' : ''}, strain ${(day.strain ?? 0).toFixed(1)}` : 'a rest day', day.asleep ? `${fmtHours(day.asleep)} of sleep` : null].filter(Boolean);
+    return { when: 'Looking back', icon: '◷', color: C.muted, title: fmtDay(day.t), text: `${bits.join(' · ').replace(/^./, (c) => c.toUpperCase())}.` };
+  }
+  const bed = bedtimeFor(day);
+  if (h >= 21.5 || h < 4) {
+    const after18 = (x) => (x < 12 ? x + 24 : x) - 18;
+    const [bh, bm] = bed.at.split(':').map(Number);
+    if (after18(h) > after18(bh + bm / 60)) return { when: 'Tonight', icon: '☾', color: C.night, title: 'Past your bedtime', text: `Your target was ${bed.at}. Every extra hour awake now comes out of tomorrow’s readiness — put the phone down and get to sleep.` };
+    return { when: 'Tonight', icon: '☾', color: C.night, title: 'Time to wind down', text: `${trained ? 'You trained today, so sleep is where the gains happen.' : 'Recovery starts now.'} Aim to be asleep by ${bed.at} to get the ${fmtHours(bed.need)} you need. Dim the lights, put the phone away and keep the room cool.` };
+  }
+  if (r == null) return { when: 'Today', icon: '•', color: C.muted, title: 'Waiting for your data', text: 'Sleep with your watch on and your readiness will be ready in the morning.' };
+  const band = r >= 80 ? 'high' : r >= 65 ? 'mid' : 'low';
+  if (h >= 18) {
+    if (trained) return { when: 'This evening', icon: '✓', color: C.high, title: 'Recover tonight', text: `Session done (strain ${(day.strain ?? 0).toFixed(1)}). Have a proper meal with protein and carbs, drink water, and aim to be asleep by ${bed.at}.` };
+    if (band === 'low') return { when: 'This evening', icon: '↓', color: C.low, title: 'Rest and an early night', text: `Your body is asking for recovery. Skip training, take a short walk if you like, and aim to be asleep by ${bed.at}.` };
+    return { when: 'This evening', icon: '→', color: C[band], title: 'Keep it light', text: `Hard efforts this late can hurt your sleep. If you want to move, an easy 20–30 min jog or walk is plenty — otherwise save the session for tomorrow and aim for bed by ${bed.at}.` };
+  }
+  if (trained) return { when: h >= 12 ? 'This afternoon' : 'This morning', icon: '✓', color: C.high, title: 'Session done', text: `Nice work (strain ${(day.strain ?? 0).toFixed(1)}). Refuel within the next hour, drink water, and keep the rest of the day easy.` };
+  const later = h >= 12 ? 'later today' : 'today';
+  if (band === 'high') return { when: h >= 12 ? 'This afternoon' : 'This morning', icon: '↑', color: C.high, title: 'A good day to push', text: `You’re well recovered. Good time for 5K work ${later}: 5 × 1 km at ${fmtClock(gp - 12)}–${fmtClock(gp - 6)} /km with 2 min easy jogging between.` };
+  if (band === 'mid') return { when: h >= 12 ? 'This afternoon' : 'This morning', icon: '→', color: C.mid, title: 'Keep it steady', text: `Recovered, but not fully. An easy 30–40 min run ${later} at ${fmtClock(gp + 50)} /km or slower builds fitness without digging a hole.` };
+  return { when: h >= 12 ? 'This afternoon' : 'This morning', icon: '↓', color: C.low, title: 'Take it easy today', text: 'Signs of strain are showing. Rest, walk, stretch — hard training today would cost more than it gives.' };
 }
 
 // ===================== rings & motion =====================
@@ -1040,9 +1075,10 @@ function dayBars(node, key, fn, kind, n = 14, opts = {}) {
 
 // ===================== TODAY =====================
 function viewToday(v) {
-  const day = M.byKey.get(cur);
+  const day = M.byKey.get(cur), c = coachFor(day);
   v.innerHTML = `
     <div class="trio" id="trio"></div>
+    <div class="card mt"><div class="coach"><div class="badge" style="background:color-mix(in srgb, ${c.color} 18%, transparent);color:${c.color}">${c.icon}</div><div><div class="small muted" style="margin-bottom:2px">${esc(c.when)}</div><h4>${esc(c.title)}</h4><p>${esc(c.text)}</p></div></div></div>
     <div class="cols mt">
       <div class="stack">
         <div class="card"><div class="card-title"><h3>Your day</h3><span>${fmtDay(day.t)}</span></div><div class="timeline" id="tl"></div></div>
