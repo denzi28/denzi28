@@ -362,7 +362,6 @@ details > summary { cursor: pointer; color: var(--ink-2); font-size: 13px; paddi
 
 <script>
 // ===================== settings =====================
-const GOAL = { label: 'Sub-27:00 5K', seconds: 27 * 60 };
 const DEMO = location.pathname.replace(/\/$/, '').endsWith('/demo') || new URLSearchParams(location.search).has('demo');
 
 // ===================== helpers =====================
@@ -691,7 +690,7 @@ function bedtimeFor(day) {
 // Suggestions follow the clock: plan in the morning, adjust in the afternoon,
 // recover in the evening, wind down at night. Past days get a short recap instead.
 function coachFor(day) {
-  const r = day.readiness, gp = GOAL.seconds / 5;
+  const r = day.readiness;
   const now = new Date(), h = now.getHours() + now.getMinutes() / 60;
   const trained = day.acts.some((a) => (a.load || 0) >= 20 || (a.dur || 0) >= 1200);
   const C = { high: css('--optimal'), mid: css('--good'), low: css('--low'), night: css('--sleep-a'), muted: css('--muted') };
@@ -713,12 +712,10 @@ function coachFor(day) {
     if (band === 'low') return { when: 'This evening', icon: '↓', color: C.low, title: 'Rest and an early night', text: `Your body is asking for recovery. Skip training, take a short walk if you like, and aim to be asleep by ${bed.at}.` };
     return { when: 'This evening', icon: '→', color: C[band], title: 'Keep it light', text: `Hard efforts this late can hurt your sleep. If you want to move, an easy 20–30 min jog or walk is plenty — otherwise save the session for tomorrow and aim for bed by ${bed.at}.` };
   }
-  const ses = sessionFor(day);
-  if (!trained && ses) return { when: h >= 12 ? 'This afternoon' : 'This morning', icon: ses.status === 'swap' ? '↓' : ses.kind === 'rest' ? '◌' : '↑', color: ses.status === 'swap' ? C.low : C[band], title: ses.title, text: `${ses.text}${ses.status === 'swap' && ses.note ? ` (${ses.note})` : ''}` };
   if (trained) return { when: h >= 12 ? 'This afternoon' : 'This morning', icon: '✓', color: C.high, title: 'Session done', text: `Nice work (strain ${(day.strain ?? 0).toFixed(1)}). Refuel within the next hour, drink water, and keep the rest of the day easy.` };
   const later = h >= 12 ? 'later today' : 'today';
-  if (band === 'high') return { when: h >= 12 ? 'This afternoon' : 'This morning', icon: '↑', color: C.high, title: 'A good day to push', text: `You’re well recovered. Good time for 5K work ${later}: 5 × 1 km at ${fmtClock(gp - 12)}–${fmtClock(gp - 6)} /km with 2 min easy jogging between.` };
-  if (band === 'mid') return { when: h >= 12 ? 'This afternoon' : 'This morning', icon: '→', color: C.mid, title: 'Keep it steady', text: `Recovered, but not fully. An easy 30–40 min run ${later} at ${fmtClock(gp + 50)} /km or slower builds fitness without digging a hole.` };
+  if (band === 'high') return { when: h >= 12 ? 'This afternoon' : 'This morning', icon: '↑', color: C.high, title: 'A good day to push', text: `You’re well recovered — a good day for a hard session ${later}, like intervals or a tempo run.` };
+  if (band === 'mid') return { when: h >= 12 ? 'This afternoon' : 'This morning', icon: '→', color: C.mid, title: 'Keep it steady', text: `Recovered, but not fully. Keep ${later} easy — a relaxed run or ride where you can still hold a conversation.` };
   return { when: h >= 12 ? 'This afternoon' : 'This morning', icon: '↓', color: C.low, title: 'Take it easy today', text: 'Signs of strain are showing. Rest, walk, stretch — hard training today would cost more than it gives.' };
 }
 
@@ -841,7 +838,7 @@ const METRICS = {
   floors: { title: 'Floors climbed', unit: '', value: (d) => d.d.floors, show: (d) => (d.d.floors != null ? round(d.d.floors) : '–'), sub: () => 'About 3 m of climbing each', series: S((d) => d.d.floors), fmt: (v) => String(round(v)), color: '--ink-2', chart: 'bars', what: 'Floors climbed, from your watch’s barometer.', how: [], tips: [], related: [] },
   vo2: { title: 'VO2 max', unit: '', value: (d) => lastVo2(d)?.vo2, show: (d) => lastVo2(d)?.vo2 ?? '–', sub: (d) => (lastVo2(d) ? `Last updated ${fmtDate(lastVo2(d).t)}` : 'From runs with GPS and heart rate'),
     series: (day) => M.acts.filter((a) => a.vo2 && a.t <= day.t + DAY && a.t > day.t - 180 * DAY).map((a) => [a.t, a.vo2]), fmt: String, color: '--strain', higherBetter: true,
-    what: 'VO2 max is the most oxygen your body can use per minute, per kilo — the engine size behind your running.', how: ['Garmin estimates it from your pace and heart rate on outdoor runs.', 'The chart shows the last 6 months.'], tips: ['Intervals at 5K pace or faster and steady easy mileage both raise it.'], related: ['goal5k'] },
+    what: 'VO2 max is the most oxygen your body can use per minute, per kilo — the engine size behind your running.', how: ['Garmin estimates it from your pace and heart rate on outdoor runs.', 'The chart shows the last 6 months.'], tips: ['Intervals at 5K pace or faster and steady easy mileage both raise it.'], related: ['rhr', 'fitnessAge'] },
   fitnessAge: { title: 'Fitness age', unit: 'yrs', noGeneric: true, value: () => fa()?.fitnessAge, show: () => (fa()?.fitnessAge != null ? round(fa().fitnessAge, 1) : '–'),
     sub: () => { const f = fa(); if (!f) return 'Not available from your watch yet'; return [f.chronologicalAge != null ? `Actual age ${f.chronologicalAge}` : null, f.achievableFitnessAge != null ? `achievable ${round(f.achievableFitnessAge, 1)}` : null, f.previousFitnessAge != null ? `previously ${round(f.previousFitnessAge, 1)}` : null].filter(Boolean).join(' · '); },
     series: () => [], fmt: String,
@@ -857,11 +854,6 @@ const METRICS = {
     what: 'Fitness age compares your fitness with what’s typical for different ages. It’s Garmin’s estimate from your VO2 max, resting heart rate, activity and body composition.',
     how: ['Calculated by Garmin and updated as your VO2 max, resting heart rate and weekly activity change.', 'The breakdown shows each factor, the target Garmin suggests, and how many years reaching it could take off.'],
     tips: ['More vigorous minutes each week and a lower resting heart rate move it the most.'], related: ['vo2', 'rhr', 'intensity'] },
-  goal5k: { title: 'Sub-27 5K', unit: '', value: () => best5kRecent()?.sec, show: () => (best5kRecent() ? fmtClock(best5kRecent().sec) : '–'), sub: () => { const b = best5kRecent(); if (!b) return 'No 5K efforts yet'; const gap = Math.round(b.sec - GOAL.seconds); return gap <= 0 ? `Goal beaten by ${fmtClock(-gap)}` : `${fmtClock(gap)} to go · best of the last 90 days`; },
-    series: (day) => M.acts.filter((a) => isRun(a) && best5k(a) && a.t > day.t - 180 * DAY && a.t <= day.t + DAY).map((a) => [a.t, round(best5k(a))]), fmt: fmtClock, color: '--activity-b', invert: true, refs: [{ y: GOAL.seconds, label: '27:00' }],
-    what: `Your goal is to run 5 km in under 27:00 — an average pace of ${fmtPace(GOAL.seconds / 5)}.`, how: ['Each point is your fastest 5 km inside a run (Garmin’s fastest-split), over the last 6 months.', 'Lower on the chart is faster.'],
-    tips: ['One interval session a week (e.g. 5 × 1 km just under goal pace) plus 2–3 easy runs.', 'Run the easy days truly easy — it’s what lets you hit the hard ones.'], related: ['vo2', 'readiness'] },
-
   // readiness contributors
   'c.hrv': { title: 'HRV balance', kind: 'score', value: (d) => d.rc.hrv, show: (d) => d.rc.hrv ?? '–', sub: (d) => (d.hrv?.last ? `${d.hrv.last} ms last night · normal ${round(d.hrvBase) ?? '–'} ms` : 'No HRV last night'), series: S((d) => d.rc?.hrv), chart: 'bars', max: 100, fmt: String,
     what: 'Compares last night’s HRV with your own 30-day normal.', how: ['At your normal you score about 78. Each standard deviation above adds ~14 points; below takes them away.'], tips: ['Several low nights in a row are a signal to back off.'], related: ['hrv'] },
@@ -901,11 +893,6 @@ const METRICS = {
 };
 
 function best5k(a) { return a.f5k || (a.dist >= 4950 && a.dist <= 5400 ? a.dur * (5000 / a.dist) : null); }
-function best5kRecent() {
-  const pick = (from) => M.acts.filter((a) => isRun(a) && a.t >= from).map((a) => ({ a, t: a.t, sec: best5k(a) })).filter((x) => x.sec > 600).sort((x, y) => x.sec - y.sec)[0];
-  return pick(Date.now() - 90 * DAY) || pick(0) || null;
-}
-
 // Garmin sends many texts as codes like POSITIVE_LONG_AND_DEEP; make them readable.
 const niceCode = (v) => String(v).replace(/^(EVENT_|BODY_BATTERY_|DAY_|END_OF_DAY_|HRV_|SLEEP_)/, '').replace(/_\d+$/, '').replace(/_/g, ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase());
 
@@ -1129,18 +1116,17 @@ const ICONS = {
   data: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
   profile: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
   explore: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
-  plan: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
   week: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M7 14h4"/>',
   insights: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/>',
   records: '<path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4zM17 6h3a3 3 0 0 1-3 4M7 6H4a3 3 0 0 0 3 4"/>',
   calendar: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M7 9h2M11 9h2M15 9h2M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/>',
 };
-const SIDE = [['today', 'Today'], ['readiness', 'Readiness'], ['sleep', 'Sleep'], ['activity', 'Activity'], null, ['plan', '5K plan'], ['week', 'Weekly report'], ['insights', 'Insights'], ['records', 'Records'], ['calendar', 'Calendar'], null, ['workouts', 'Workouts'], ['trends', 'Trends'], ['data', 'Data'], ['profile', 'Profile']];
+const SIDE = [['today', 'Today'], ['readiness', 'Readiness'], ['sleep', 'Sleep'], ['activity', 'Activity'], null, ['week', 'Weekly report'], ['insights', 'Insights'], ['records', 'Records'], ['calendar', 'Calendar'], null, ['workouts', 'Workouts'], ['trends', 'Trends'], ['data', 'Data'], ['profile', 'Profile']];
 const TABS = [['today', 'Today'], ['readiness', 'Readiness'], ['sleep', 'Sleep'], ['activity', 'Activity'], ['explore', 'Explore']];
 const DAY_ROUTES = ['today', 'readiness', 'sleep', 'activity'];
 const baseOf = (r) => { const b = r.split('/')[0]; return b === 'workout' ? 'workouts' : b; };
 function navHtml(items, mobile) {
-  const b = baseOf(route), active = mobile && ['workouts', 'trends', 'data', 'profile', 'plan', 'week', 'insights', 'records', 'calendar'].includes(b) ? 'explore' : b;
+  const b = baseOf(route), active = mobile && ['workouts', 'trends', 'data', 'profile', 'week', 'insights', 'records', 'calendar'].includes(b) ? 'explore' : b;
   return items.map((it) => (it ? `<button class="nav-btn" data-go="${it[0]}" ${active === it[0] ? 'aria-current="page"' : ''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[it[0]]}</svg><span>${it[1]}</span></button>` : '<div class="sep"></div>')).join('');
 }
 function go(r) {
@@ -1170,7 +1156,7 @@ function topLeft() {
   if (b === 'today' || b === '') tl.innerHTML = `<div class="greet">${dayLabel === 'Today' ? fmtDay(Date.now()) : dayLabel}</div><h1 class="page-title">${dayLabel === 'Today' ? greeting() : 'Your day'}</h1>`;
   else if (DAY_ROUTES.includes(b)) tl.innerHTML = `<div class="greet">${dayLabel}</div><h1 class="page-title">${({ readiness: 'Readiness', sleep: 'Sleep', activity: 'Activity' })[b]}</h1>`;
   else if (b === 'workout') { tl.innerHTML = '<button class="back" id="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>Workouts</button>'; $('#back').onclick = () => go('workouts'); }
-  else tl.innerHTML = `<h1 class="page-title">${({ workouts: 'Workouts', trends: 'Trends', data: 'Data', profile: 'Profile', explore: 'Explore', plan: '5K plan', week: 'Weekly report', insights: 'Insights', records: 'Records & streaks', calendar: 'Calendar' })[b] || ''}</h1>`;
+  else tl.innerHTML = `<h1 class="page-title">${({ workouts: 'Workouts', trends: 'Trends', data: 'Data', profile: 'Profile', explore: 'Explore', week: 'Weekly report', insights: 'Insights', records: 'Records & streaks', calendar: 'Calendar' })[b] || ''}</h1>`;
   if (jump) { $('.greet', tl).insertAdjacentHTML('beforeend', jump); $('#to-today').onclick = () => { selectDay(latest); const w = $('#week'); if (w) w.scrollTo({ left: w.scrollWidth, behavior: 'smooth' }); }; }
 }
 let stripKind = null;
@@ -1216,7 +1202,7 @@ function render(dayOnly = false) {
   const v = $('#view');
   v.className = ''; void v.offsetWidth; v.className = dayOnly ? 'view-soft' : 'view'; v.innerHTML = '';
   const [base, arg] = route.split('/');
-  const views = { today: viewToday, readiness: viewReadiness, sleep: viewSleep, activity: viewActivity2, workouts: viewActivities, workout: viewActivity, trends: viewTrends, data: viewData, profile: viewProfile, explore: viewExplore, plan: viewPlan, week: viewWeek, insights: viewInsights, records: viewRecords, calendar: viewCalendar };
+  const views = { today: viewToday, readiness: viewReadiness, sleep: viewSleep, activity: viewActivity2, workouts: viewActivities, workout: viewActivity, trends: viewTrends, data: viewData, profile: viewProfile, explore: viewExplore, week: viewWeek, insights: viewInsights, records: viewRecords, calendar: viewCalendar };
   (views[base] || viewToday)(v, arg);
 }
 
@@ -1269,7 +1255,6 @@ function viewToday(v) {
     <div class="cols mt">
       <div class="stack">
         <div class="card"><div class="card-title"><h3>Your day</h3><span>${fmtDay(day.t)}</span></div><div class="timeline" id="tl"></div></div>
-        <button class="card tap" data-metric="goal5k" style="display:block;width:100%;text-align:left" id="goal"></button>
       </div>
       <div class="stack"><div class="metrics" id="m-key"></div></div>
     </div>
@@ -1297,9 +1282,6 @@ function viewToday(v) {
   bbDetail($('#bb-today'), day);
   hrDay($('#hr-today'), day);
   v.querySelectorAll('[data-go]').forEach((b) => (b.onclick = () => go(b.dataset.go)));
-  const b5 = best5kRecent(), gap = b5 ? Math.round(b5.sec - GOAL.seconds) : null, frac = b5 ? clamp((32 * 60 - b5.sec) / (32 * 60 - GOAL.seconds), 0, 1) : 0;
-  $('#goal').innerHTML = `<div class="card-title"><h3>Goal · ${esc(GOAL.label)}</h3><span class="chev">›</span></div><div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><b class="thin" style="font-size:44px;line-height:1">${b5 ? fmtClock(b5.sec) : '–'}</b><span class="small" style="color:${gap != null && gap <= 0 ? 'var(--optimal)' : 'var(--ink-2)'}">${gap == null ? 'No 5K efforts yet' : gap <= 0 ? `✓ beaten by ${fmtClock(-gap)}` : `${fmtClock(gap)} to go`}</span></div>
-    <div style="height:6px;border-radius:99px;background:var(--surface-3);margin:14px 0 6px;overflow:hidden"><div style="height:100%;width:${frac * 100}%;border-radius:99px;background:linear-gradient(90deg,var(--activity-b),var(--activity-a))"></div></div><div class="small muted" style="display:flex;justify-content:space-between"><span>32:00</span><span>Goal 27:00 · ${fmtPace(GOAL.seconds / 5)}</span></div>`;
   rawCard($('#raw-daily'), 'Daily summary', `/api/raw?kind=daily&key=${cur}`, `daily-${cur}.json`);
 }
 
@@ -1444,10 +1426,10 @@ function zoneBounds() {
 
 // ===================== EXPLORE =====================
 function viewExplore(v) {
-  const items = [['plan', '5K plan', 'Today’s session, paces, prediction'], ['week', 'Weekly report', 'Your week in review'], ['insights', 'Insights', 'Patterns in your data'], ['records', 'Records & streaks', 'Your bests and streaks'], ['calendar', 'Calendar', 'The year at a glance'], ['workouts', 'Workouts', `${M.acts.length} activities, laps, charts`], ['trends', 'Trends', 'Weeks to a year, plus any metric'], ['data', 'Data', 'Every raw field Garmin sent'], ['profile', 'Profile', 'Sync, history, settings']];
+  const items = [['week', 'Weekly report', 'Your week in review'], ['insights', 'Insights', 'Patterns in your data'], ['records', 'Records & streaks', 'Your bests and streaks'], ['calendar', 'Calendar', 'The year at a glance'], ['workouts', 'Workouts', `${M.acts.length} activities, laps, charts`], ['trends', 'Trends', 'Weeks to a year, plus any metric'], ['data', 'Data', 'Every raw field Garmin sent'], ['profile', 'Profile', 'Sync, history, settings']];
   v.innerHTML = `<div class="explore">${items.map(([r, t, s]) => `<button class="card tap" data-go="${r}"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[r]}</svg></span><span><b>${t}</b><span>${s}</span></span></button>`).join('')}</div>
     <div class="section-label">Learn about your numbers</div>
-    <div class="chips">${['readiness', 'sleepScore', 'activityScore', 'strain', 'hrv', 'rhr', 'bb', 'stress', 'resp', 'spo2', 'vo2', 'fitnessAge', 'sedentary', 'goal5k'].map((k) => `<button data-metric="${k}">${esc(METRICS[k].title)}</button>`).join('')}</div>`;
+    <div class="chips">${['readiness', 'sleepScore', 'activityScore', 'strain', 'hrv', 'rhr', 'bb', 'stress', 'resp', 'spo2', 'vo2', 'fitnessAge', 'sedentary'].map((k) => `<button data-metric="${k}">${esc(METRICS[k].title)}</button>`).join('')}</div>`;
   v.querySelectorAll('[data-go]').forEach((b) => (b.onclick = () => go(b.dataset.go)));
 }
 // ===================== shared bits =====================
@@ -1772,7 +1754,7 @@ function viewProfile(v) {
   const okCount = Object.values(probe).filter((r) => r.ok).length;
   v.innerHTML = `
     <div class="cols"><div class="stack">
-      <div class="card"><div class="profile-head"><div class="avatar">${p.image ? `<img src="${esc(p.image)}" alt="">` : esc(initial())}</div><div><div style="font-weight:600;font-size:18px">${esc(p.name || (DEMO ? 'Demo user' : 'You'))}</div><div class="small muted">${esc(GOAL.label)} · running</div></div></div></div>
+      <div class="card"><div class="profile-head"><div class="avatar">${p.image ? `<img src="${esc(p.image)}" alt="">` : esc(initial())}</div><div><div style="font-weight:600;font-size:18px">${esc(p.name || (DEMO ? 'Demo user' : 'You'))}</div><div class="small muted">Garmin · read-only</div></div></div></div>
       <div class="card"><div class="card-title"><h3>Garmin connection</h3></div>
         <div class="setting"><div><span class="status-dot"></span>Connected</div><span>Personal API · read-only</span></div>
         <div class="setting"><div>Last sync</div><span>${s.lastSync ? new Date(s.lastSync).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '–'}</span></div>
@@ -1787,7 +1769,6 @@ function viewProfile(v) {
         <p class="small muted" style="margin:0 0 12px">Your friend opens their own account with their own Garmin API key. Everyone sees only their own data.</p>
         <button class="pill-btn primary" disabled>Create invite link</button></div>
       <div class="card"><div class="card-title"><h3>Settings</h3></div>
-        <div class="setting"><div>Goal</div><span>${esc(GOAL.label)}</span></div>
         <div class="setting"><div>Units</div><span>km</span></div>
         <div class="setting"><div>Classic dashboard</div><a href="/" class="pill-btn">Open</a></div>
         <div class="setting"><div>Log out</div><button class="pill-btn" id="logout">Log out</button></div>
@@ -1979,86 +1960,6 @@ async function routeMap(node, pts) {
   L.circleMarker(pts[0], { radius: 6, color: '#fff', weight: 2, fillColor: css('--optimal'), fillOpacity: 1 }).addTo(map);
   L.circleMarker(pts[pts.length - 1], { radius: 6, color: '#fff', weight: 2, fillColor: css('--low'), fillOpacity: 1 }).addTo(map);
   map.fitBounds(line1.getBounds(), { padding: [18, 18] });
-}
-
-// ===================== 5K plan =====================
-// A simple 4-week cycle built around your goal pace, adjusted each day by readiness.
-const GP = () => GOAL.seconds / 5;
-function predicted5k(until = Date.now(), windowDays = 42) {
-  let best = null;
-  for (const a of M.acts) {
-    if (!isRun(a) || a.t > until || a.t < until - windowDays * DAY || !a.dist) continue;
-    const cands = [a.f5k];
-    if (a.dist >= 3000) cands.push((a.moving || a.dur) * Math.pow(5000 / a.dist, 1.06)); // Riegel
-    for (const c of cands) if (c && c > 600 && (!best || c < best.sec)) best = { sec: c, a };
-  }
-  return best;
-}
-function planPaces() {
-  const gp = GP(), pred = predicted5k(), cp = pred ? pred.sec / 5 : gp + 30;
-  const easy = Math.max(cp, gp) + 70;
-  return { goal: gp, current: cp, interval: [gp - 12, gp - 6], tempo: [gp + 15, gp + 25], easy: [easy, easy + 30], long: [easy + 10, easy + 40] };
-}
-const paceRange = ([a, b]) => `${fmtClock(a)}–${fmtClock(b)} /km`;
-function planFor(t) {
-  const first = M.acts.find(isRun)?.t ?? t;
-  const wk = Math.max(0, Math.floor((weekStart(t) - weekStart(first)) / (7 * DAY)));
-  const cyc = wk % 4, deload = cyc === 3, P = planPaces();
-  const iv = [['5 × 1 km', 'with 2 min easy jog between'], ['6 × 800 m', 'with 90 s easy jog between'], ['4 × 1.2 km', 'with 2 min easy jog between'], ['3 × 1 km', 'with 2 min jog — lighter week']][cyc];
-  const tempo = [['3 × 7 min', '2 min easy between'], ['2 × 10 min', '3 min easy between'], ['20 min steady', 'continuous'], ['2 × 8 min', 'lighter week']][cyc];
-  const longMin = deload ? 45 : 50 + Math.min(20, Math.floor(wk / 4) * 5) + cyc * 5;
-  const wd = (new Date(t).getDay() + 6) % 7;
-  return [
-    { kind: 'rest', title: 'Rest', text: 'Rest or 20 min walk and mobility.' },
-    { kind: 'quality', title: `Intervals · ${iv[0]}`, text: `${iv[0]} at ${paceRange(P.interval)}, ${iv[1]}. 10 min easy warm-up and cool-down.` },
-    { kind: 'easy', title: 'Easy run · 30–40 min', text: `Conversational pace, ${paceRange(P.easy)}.` },
-    { kind: 'quality', title: `Tempo · ${tempo[0]}`, text: `${tempo[0]} at ${paceRange(P.tempo)}, ${tempo[1]}. 10 min easy before and after.` },
-    { kind: 'rest', title: 'Rest', text: 'Full rest — legs up.' },
-    { kind: 'long', title: `Long run · ${longMin} min`, text: `Easy and relaxed, ${paceRange(P.long)}.` },
-    { kind: 'easy', title: 'Easy run + strides', text: `25–30 min at ${paceRange(P.easy)}, then 6 × 20 s strides.` },
-  ][wd];
-}
-// Today's session after looking at readiness and whether you've already run.
-function sessionFor(day) {
-  const base = planFor(day.t), r = day.readiness;
-  const ran = day.acts.filter(isRun);
-  if (ran.length) return { ...base, status: 'done', note: `Done: ${ran.map((a) => `${fmtKm(a.dist, 1)} at ${fmtPace((a.moving || a.dur) / (a.dist / 1000))}`).join(', ')}.` };
-  if (base.kind === 'rest' || r == null) return { ...base, status: 'planned', note: r == null ? 'No readiness yet — go by feel.' : '' };
-  if (r < 65) return { ...base, status: 'swap', title: 'Rest instead', text: 'Readiness is low — swap today’s session for rest or a 20–30 min walk. The plan picks up again tomorrow.', note: `Planned: ${base.title}` };
-  if (r < 80 && base.kind === 'quality') return { ...base, status: 'swap', title: 'Easy run + strides', text: `Readiness is only ${LABEL(r).toLowerCase()} — run 30 min easy at ${paceRange(planPaces().easy)} with 4 × 20 s strides instead of the hard session.`, note: `Planned: ${base.title}` };
-  return { ...base, status: 'planned', note: r >= 80 ? 'You’re well recovered — good day for it.' : '' };
-}
-function viewPlan(v) {
-  const P = planPaces(), pred = predicted5k(), gap = pred ? Math.round(pred.sec - GOAL.seconds) : null;
-  const today = M.byKey.get(dayKey(Date.now())) || M.days[M.days.length - 1];
-  const s = sessionFor(today), ws = weekStart(Date.now());
-  v.innerHTML = `
-    <div class="card"><div class="card-title"><h3>Today</h3><span>${fmtDay(Date.now())}</span></div>
-      <h2 style="margin:0 0 4px;font-weight:500;font-size:20px">${esc(s.title)}${s.status === 'done' ? ' <span class="good small">✓</span>' : ''}</h2><p style="margin:0;color:var(--ink-2)">${esc(s.text)}</p>${s.note ? `<p class="small muted" style="margin:8px 0 0">${esc(s.note)}</p>` : ''}</div>
-    <div class="cols mt">
-      <div class="stack">
-        <div class="card"><div class="card-title"><h3>This week</h3><span>${fmtShort(ws)} – ${fmtShort(ws + 6 * DAY)}</span></div><div id="week-plan"></div></div>
-        <div class="card"><div class="card-title"><h3>Your paces</h3><span>from goal ${fmtPace(P.goal)}</span></div>
-          ${[['Intervals', paceRange(P.interval)], ['Tempo', paceRange(P.tempo)], ['Easy', paceRange(P.easy)], ['Long run', paceRange(P.long)]].map(([k, val]) => `<div class="fact-line"><span>${k}</span><b>${val}</b></div>`).join('')}</div>
-      </div>
-      <div class="stack">
-        <div class="card"><div class="card-title"><h3>Predicted 5K</h3><span>from your last 6 weeks of runs</span></div>
-          <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><b class="thin" style="font-size:44px;line-height:1">${pred ? fmtClock(pred.sec) : '–'}</b><span class="small" style="color:${gap != null && gap <= 0 ? 'var(--optimal)' : 'var(--ink-2)'}">${gap == null ? 'Run 3 km or more to get a prediction' : gap <= 0 ? `✓ ${fmtClock(-gap)} under 27:00` : `${fmtClock(gap)} to go`}</span></div>
-          <div class="chart mt" id="pred-trend"></div>
-          <p class="small muted" style="margin:8px 0 0">Your best recent effort scaled to 5 km (Riegel formula), or Garmin’s fastest 5 km split. An estimate.</p></div>
-        <div class="card"><div class="card-title"><h3>How the plan works</h3></div><p class="small muted" style="margin:0">4 runs a week: intervals, easy, tempo, long — repeating in 4-week cycles with an easier 4th week. Each morning it checks readiness: under 65 swaps the session for rest, 65–79 turns hard sessions into easy running with strides.</p></div>
-      </div>
-    </div>`;
-  $('#week-plan').innerHTML = Array.from({ length: 7 }, (_, i) => {
-    const t = ws + i * DAY, k = dayKey(t), d = M.byKey.get(k), p = planFor(t);
-    const ran = d ? d.acts.filter(isRun) : [];
-    const past = k < dayKey(Date.now()), isToday = k === dayKey(Date.now());
-    const status = ran.length ? `<span class="good">✓ ${fmtKm(sum(ran.map((a) => a.dist)), 1)}</span>` : p.kind === 'rest' ? '<span class="muted">rest</span>' : past ? '<span class="bad">missed</span>' : isToday ? '<span>today</span>' : '<span class="muted">planned</span>';
-    return `<div class="fact-line" style="${isToday ? 'font-weight:600' : ''}"><span style="min-width:0">${WD[new Date(t).getDay()]} · ${esc(p.title)}</span><b>${status}</b></div>`;
-  }).join('');
-  const pts = [];
-  for (let i = 11; i >= 0; i--) { const t = weekStart(Date.now()) - i * 7 * DAY + 7 * DAY - 1; const p = predicted5k(Math.min(t, Date.now())); if (p) pts.push([Math.min(t, Date.now()), round(p.sec)]); }
-  line($('#pred-trend'), [{ name: 'Predicted 5K', color: css('--activity-b'), data: pts, dots: true, line: true, gapX: 30 * DAY }], { height: 130, yFmt: fmtClock, yTick: fmtClock, invert: true, refs: [{ y: GOAL.seconds, label: '27:00' }] });
 }
 
 // ===================== weekly report =====================
