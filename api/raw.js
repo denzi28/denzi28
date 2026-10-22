@@ -2,10 +2,10 @@
 //   /api/raw?kind=daily              -> every day's raw summary
 //   /api/raw?kind=daily&key=2026-10-21 -> one day
 //   /api/raw?kind=extra&key=trainingStatus -> latest answer from a discovered endpoint
-// kinds: activities, daily, sleep, hrv, weight (keyed), extra (keyed), zones, fitnessAge, profile, probe, shapes
+// kinds: activities, daily, sleep, hrv, weight, bb (keyed), extra (keyed), zones, fitnessAge, profile, probe, shapes
 import { DATA_PATH, isAuthed, readStore, sendJson } from '../lib/common.js';
 
-const KEYED = ['activities', 'daily', 'sleep', 'hrv', 'weight'];
+const KEYED = ['activities', 'daily', 'sleep', 'hrv', 'weight', 'bb'];
 const SINGLE = ['zones', 'fitnessAge', 'profile', 'probe', 'shapes'];
 
 export default async function handler(req, res) {

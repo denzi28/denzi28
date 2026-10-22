@@ -1,10 +1,10 @@
 // Any numeric Garmin field as a time series.
 //   /api/series?kind=daily               -> list of numeric fields with how many days have them
 //   /api/series?kind=daily&path=a.b.c    -> [[date, value], ...]
-// kinds: daily, sleep, hrv, weight, activities (activities are keyed by start time)
+// kinds: daily, sleep, hrv, weight, bb, activities (activities are keyed by start time)
 import { DATA_PATH, isAuthed, readStore, sendJson, flatten, getPath } from '../lib/common.js';
 
-const KINDS = ['daily', 'sleep', 'hrv', 'weight', 'activities'];
+const KINDS = ['daily', 'sleep', 'hrv', 'weight', 'bb', 'activities'];
 
 export default async function handler(req, res) {
   if (!isAuthed(req)) return sendJson(res, 401, { error: 'login' });

@@ -495,7 +495,7 @@ function bars(node, items, { height = 150, max, yTick = String, refs = [], onPic
 }
 
 // line chart. series: [{ name, color, data: [[x, y]], dots, faint, fmt }]; x is a time (ms) unless xFmt is given
-function line(node, series, { height = 150, yFmt = (v) => String(round(v, 2)), xFmt, xTick, band, spark = false, refs = [], invert = false, gapX = 4 * DAY, yTick } = {}) {
+function line(node, series, { height = 150, yFmt = (v) => String(round(v, 2)), xFmt, xTick, band, spark = false, refs = [], invert = false, gapX = 4 * DAY, yTick, xBands = [], yDomain } = {}) {
   node.innerHTML = '';
   const all = series.flatMap((s) => s.data);
   if (!all.length) { node.innerHTML = spark ? '' : '<div class="empty">No data in this range.</div>'; return; }
@@ -504,6 +504,7 @@ function line(node, series, { height = 150, yFmt = (v) => String(round(v, 2)), x
   const xs = all.map((d) => d[0]); let x0 = Math.min(...xs), x1 = Math.max(...xs); if (x0 === x1) { x0 -= 1; x1 += 1; }
   const ys = all.map((d) => d[1]).concat((band || []).flatMap((b) => [b[1], b[2]]), refs.map((r) => r.y));
   let y0 = Math.min(...ys), y1 = Math.max(...ys); const pad = (y1 - y0) * 0.12 || Math.abs(y1) * 0.05 || 1; y0 -= pad; y1 += pad;
+  if (yDomain) [y0, y1] = yDomain;
   let ticks = []; if (!spark) { ticks = niceTicks(y0, y1, 3); y0 = ticks[0]; y1 = ticks[ticks.length - 1]; }
   const X = (t) => m.l + ((t - x0) / (x1 - x0)) * (W - m.l - m.r);
   const Y = (v) => (invert ? m.t + ((v - y0) / (y1 - y0)) * (H - m.t - m.b) : m.t + (1 - (v - y0) / (y1 - y0)) * (H - m.t - m.b));
@@ -516,6 +517,7 @@ function line(node, series, { height = 150, yFmt = (v) => String(round(v, 2)), x
     for (let i = 0; i <= n; i++) { const t = x0 + ((x1 - x0) * i) / n; const tx = el('text', { x: X(t), y: H - 5, 'text-anchor': i === 0 ? 'start' : i === n ? 'end' : 'middle' }, g); tx.textContent = (xTick || xFmt || fmtShort)(t); }
   }
   if (band && band.length) el('path', { d: `M${band.map((p) => `${X(p[0])},${Y(p[2])}`).join('L')}L${band.slice().reverse().map((p) => `${X(p[0])},${Y(p[1])}`).join('L')}Z`, fill: css('--rec-green'), opacity: 0.1 }, svg);
+  for (const b of xBands) { const a = Math.max(x0, b.x0), z = Math.min(x1, b.x1); if (z > a) el('rect', { x: X(a), y: m.t, width: X(z) - X(a), height: H - m.t - m.b, fill: b.color, opacity: 0.16, rx: 3 }, svg); }
   for (const r of refs) { el('line', { x1: m.l, x2: W - m.r, y1: Y(r.y), y2: Y(r.y), stroke: r.color || css('--ink-2'), 'stroke-dasharray': '4 4' }, svg); if (r.label && !spark) { const t = el('text', { x: m.l + 4, y: Y(r.y) - 4, fill: css('--muted'), 'font-size': 10.5 }, svg); t.textContent = r.label; } }
   for (const s of series) {
     if (s.dots) for (const [t, v] of s.data) el('circle', { cx: X(t), cy: Y(v), r: s.r || 2.3, fill: s.color, opacity: s.faint ? 0.4 : 1 }, svg);
@@ -581,13 +583,13 @@ const R_WEIGHTS = { hrv: 0.25, rhr: 0.2, sleep: 0.2, sleepBal: 0.1, prevDay: 0.1
 function buildModel(D) {
   const acts = (D.activities || []).map((a) => ({ ...a, t: parseLocal(a.start) })).sort((a, b) => a.t - b.t);
   const daily = D.daily || {}, sleep = D.sleep || {}, hrv = D.hrv || {}, weight = D.weight || {};
-  const keys = [...new Set([...Object.keys(daily), ...Object.keys(sleep), ...Object.keys(hrv), ...acts.map((a) => dayKey(a.t))])].sort();
+  const keys = [...new Set([...Object.keys(daily), ...Object.keys(sleep), ...Object.keys(hrv), ...Object.keys(D.bb || {}), ...acts.map((a) => dayKey(a.t))])].sort();
   const actsByDay = new Map();
   for (const a of acts) { const k = dayKey(a.t); if (!actsByDay.has(k)) actsByDay.set(k, []); actsByDay.get(k).push(a); }
   const days = keys.map((k) => {
     const list = actsByDay.get(k) || [], d = daily[k] || {};
     const load = sum(list.map((a) => a.load));
-    return { key: k, t: parseDay(k), acts: list, d, sleep: sleep[k] || null, hrv: hrv[k] || null, weight: weight[k] ?? null, load, strain: strainFromLoad(load, d.steps) };
+    return { key: k, t: parseDay(k), acts: list, d, sleep: sleep[k] || null, hrv: hrv[k] || null, weight: weight[k] ?? null, bbr: (D.bb || {})[k] || null, load, strain: strainFromLoad(load, d.steps) };
   });
   const byKey = new Map(days.map((d) => [d.key, d]));
   const loadBy = new Map(days.map((d) => [d.key, d.load]));
@@ -799,10 +801,13 @@ const METRICS = {
     what: 'Garmin’s stress level reads your heart rate variability through the day. Low HRV while you’re not moving is counted as stress — physical or mental.',
     how: ['0–25 rest · 26–50 low · 51–75 medium · 76–100 high.', 'Time spent exercising isn’t counted.'],
     tips: ['A few minutes of slow breathing (around 6 breaths a minute) visibly lowers it.'], related: ['bb'] },
-  bb: { title: 'Body Battery', unit: '', value: (d) => d.d.bbMax, show: (d) => (d.d.bbMax != null ? `${d.d.bbMax}` : '–'), sub: (d) => (d.d.bbMin != null ? `High ${d.d.bbMax} · low ${d.d.bbMin}${d.d.bbCharged != null ? ` · +${d.d.bbCharged} / −${d.d.bbDrained ?? '–'}` : ''}` : 'Daily high'), series: S((d) => d.d.bbMax), fmt: String, color: '--optimal', higherBetter: true,
+  bb: { title: 'Body Battery', unit: '', value: (d) => d.bbr?.high ?? d.d.bbMax, show: (d) => d.bbr?.high ?? d.d.bbMax ?? '–',
+    sub: (d) => { const c = d.bbr?.charged ?? d.d.bbCharged, x = d.bbr?.drained ?? d.d.bbDrained; return `High ${d.bbr?.high ?? d.d.bbMax ?? '–'} · low ${d.bbr?.low ?? d.d.bbMin ?? '–'}${c != null ? ` · charged +${c} · drained −${x ?? '–'}` : ''}`; },
+    series: S((d) => d.bbr?.high ?? d.d.bbMax), fmt: String, color: '--optimal', higherBetter: true,
+    noGeneric: true, extra: (node, day) => { bbDetail(node, day, { full: true }); },
     what: 'Garmin’s estimate of your energy reserves from 0 to 100. It charges while you rest and sleep and drains with activity and stress.',
-    how: ['Shown is the day’s high, usually right after you wake up.', 'Charged and drained show how much it went up and down across the day.'],
-    tips: ['Waking below ~50 regularly suggests you need more or better sleep.'], related: ['c.bb', 'stress'] },
+    how: ['The curve shows the level through the day, measured every few minutes.', 'Shaded blocks are the events Garmin detected — sleep, rest, workouts and stressful stretches — with how much each one added or took away.', 'Charged and drained are the day’s totals in each direction.'],
+    tips: ['Waking below ~50 regularly suggests you need more or better sleep.', 'Long stressful stretches drain it as surely as a workout — short breathing breaks help.'], related: ['stress', 'sleepScore', 'readiness'] },
   steps: { title: 'Steps', unit: '', value: (d) => d.d.steps, show: (d) => fmtInt(d.d.steps), sub: (d) => (d.d.stepGoal ? `Goal ${fmtInt(d.d.stepGoal)}` : 'Daily total'), series: S((d) => d.d.steps), fmt: fmtInt, color: '--strain', higherBetter: true, chart: 'bars',
     what: 'Every step your Garmin counted today, including runs.', how: ['Your step goal comes from Garmin (it adapts automatically unless you’ve set one).'], tips: ['Steps between workouts matter for recovery and overall health, not just total exercise.'], related: ['a.stay'] },
   calories: { title: 'Calories', unit: 'kcal', value: (d) => d.d.calTotal, show: (d) => fmtInt(d.d.calTotal), sub: (d) => (d.d.calActive != null ? `${fmtInt(d.d.calActive)} active · ${fmtInt(d.d.calTotal - d.d.calActive)} resting` : 'Total burned'), series: S((d) => d.d.calTotal), fmt: fmtInt, color: '--fair', chart: 'bars',
@@ -864,6 +869,88 @@ function best5kRecent() {
   return pick(Date.now() - 90 * DAY) || pick(0) || null;
 }
 
+// ===================== Body Battery detail =====================
+const BB_EV = { SLEEP: ['Sleep', '--sleep-b', '☾'], NAP: ['Nap', '--sleep-a', '☾'], ACTIVITY: ['Workout', '--activity-b', '⚡'], RECOVERY: ['Rest', '--optimal', '◌'], STRESS: ['Stress', '--low', '!'] };
+const evInfo = (type) => BB_EV[String(type || '').toUpperCase()] || [prettyType(type || 'event'), '--muted', '•'];
+const toMs = (v) => (typeof v === 'number' ? v : typeof v === 'string' ? Date.parse(/Z$|[+-]\d\d:?\d\d$/.test(v) ? v : `${v}Z`) : NaN);
+function parseBBReport(it) {
+  if (!it) return null;
+  const rows = it.bodyBatteryValuesArray || it.bodyBatteryValues || [];
+  const desc = it.bodyBatteryValueDescriptorDTOList || it.bodyBatteryValueDescriptorsDTOList || [];
+  const find = (re) => desc.find((d) => re.test(String(d.bodyBatteryValueDescriptorKey ?? d.key ?? '')));
+  const ti = find(/timestamp/i)?.bodyBatteryValueDescriptorIndex ?? 0;
+  let li = find(/level/i)?.bodyBatteryValueDescriptorIndex;
+  if (li == null && Array.isArray(rows[0])) li = rows[0].length > 2 ? 2 : 1;
+  const values = rows.map((r) => (Array.isArray(r) ? [r[ti], r[li]] : [r.timestamp ?? r.time, r.level ?? r.value])).filter((p) => typeof p[0] === 'number' && typeof p[1] === 'number').sort((a, b) => a[0] - b[0]);
+  const evs = it.bodyBatteryActivityEvent || it.bodyBatteryActivityEventList || it.events || [];
+  const events = (Array.isArray(evs) ? evs : []).map((e) => ({ type: e.eventType || e.type, start: toMs(e.eventStartTimeGmt ?? e.eventStartTimeGMT ?? e.startTimestampGMT ?? e.startTime), dur: e.durationInMilliseconds ?? (e.durationInSeconds ? e.durationInSeconds * 1000 : 0), impact: e.bodyBatteryImpact ?? e.impact, feedback: e.shortFeedback || e.feedbackType || null })).filter((e) => isFinite(e.start)).sort((a, b) => a.start - b.start);
+  const fb = it.endOfDayBodyBatteryDynamicFeedbackEvent || it.bodyBatteryDynamicFeedbackEvent;
+  return { values, events, charged: it.charged ?? it.bodyBatteryCharged ?? null, drained: it.drained ?? it.bodyBatteryDrained ?? null, feedback: fb?.feedbackShortType || fb?.feedbackLongType || null };
+}
+const niceFeedback = (s) => (s ? prettyType(String(s).replace(/^(EVENT_|BODY_BATTERY_|DAY_|END_OF_DAY_)/, '')) : '');
+
+async function bbDetail(node, day, { full = false } = {}) {
+  node.innerHTML = '<div class="empty">Loading Body Battery…</div>';
+  const { status, body } = await cached(`/api/raw?kind=bb&key=${day.key}`);
+  if (!node.isConnected) return;
+  const rep = status === 200 && body ? parseBBReport(body) : null;
+  const lv = rep?.values || [], evs = rep?.events || [];
+  const charged = rep?.charged ?? day.bbr?.charged ?? day.d.bbCharged, drained = rep?.drained ?? day.bbr?.drained ?? day.d.bbDrained;
+  const high = lv.length ? Math.max(...lv.map((p) => p[1])) : day.d.bbMax, low = lv.length ? Math.min(...lv.map((p) => p[1])) : day.d.bbMin;
+  const isToday = day.key === dayKey(Date.now());
+  const types = [...new Set(evs.map((e) => String(e.type).toUpperCase()))];
+  node.innerHTML = `
+    <div class="sh-stats" style="margin:0 0 12px;grid-template-columns:repeat(4,minmax(0,1fr))">
+      <div><span>${isToday ? 'Now' : 'End of day'}</span><b>${lv.length ? lv[lv.length - 1][1] : '–'}</b></div>
+      <div><span>Range</span><b style="white-space:nowrap">${low ?? '–'}–${high ?? '–'}</b></div>
+      <div><span>Charged</span><b class="good">${charged != null ? `+${charged}` : '–'}</b></div>
+      <div><span>Drained</span><b class="bad">${drained != null ? `−${drained}` : '–'}</b></div>
+    </div>
+    ${types.length ? `<div class="legend bb-legend"></div>` : ''}
+    <div class="chart bb-chart"></div>
+    ${rep?.feedback ? `<p class="small muted" style="margin:10px 0 0">Garmin: ${esc(niceFeedback(rep.feedback))}</p>` : ''}
+    <div class="timeline bb-events" style="margin-top:12px"></div>
+    ${full ? '<div class="sh-sec"><h4>Charged vs drained, last 14 days</h4><div class="chart bb-14"></div></div>' : ''}`;
+  if (types.length) legend($('.bb-legend', node), [[css('--optimal'), 'Level', true], ...types.map((t) => [css(evInfo(t)[1]), evInfo(t)[0]])]);
+  if (lv.length) {
+    line($('.bb-chart', node), [{ name: 'Body Battery', color: css('--optimal'), data: lv }], { height: full ? 170 : 140, yDomain: [0, 100], xFmt: (t) => fmtTime(t), xTick: (t) => fmtTime(t), yFmt: String, gapX: 45 * 60e3, xBands: evs.filter((e) => e.dur).map((e) => ({ x0: e.start, x1: e.start + e.dur, color: css(evInfo(e.type)[1]) })) });
+  } else {
+    $('.bb-chart', node).innerHTML = `<div class="empty">${status === 200 ? 'Garmin has no Body Battery curve for this day.' : 'The detailed Body Battery isn’t loaded yet — tap the sync button (↻) at the top.'}</div>`;
+  }
+  const list = full ? evs : evs.slice().sort((a, b) => Math.abs(b.impact || 0) - Math.abs(a.impact || 0)).slice(0, 4).sort((a, b) => a.start - b.start);
+  $('.bb-events', node).innerHTML = list.map((e) => { const [label, cvar] = evInfo(e.type); const imp = e.impact; return `<div class="tl" style="--dot:var(${cvar})"><span class="time">${fmtTime(e.start)}</span><span style="min-width:0"><div class="t">${esc(label)}${e.dur ? ` · ${fmtHours(e.dur / 1000)}` : ''}</div><div class="s">${esc(niceFeedback(e.feedback))}</div></span><span class="r ${imp > 0 ? 'good' : imp < 0 ? 'bad' : ''}">${imp == null ? '' : imp > 0 ? `+${imp}` : `−${Math.abs(imp)}`}</span></div>`; }).join('');
+  if (!list.length) $('.bb-events', node).remove();
+  if (full) {
+    const ds = recent(day.key, 14);
+    divBars($('.bb-14', node), ds.map((d) => ({ key: d.key, label: fmtShort(d.t), up: d.bbr?.charged ?? d.d.bbCharged, down: d.bbr?.drained ?? d.d.bbDrained, selected: d.key === day.key,
+      tip: `<b>${fmtDay(d.t)}</b>${tipRow(css('--optimal'), 'Charged', d.bbr?.charged ?? d.d.bbCharged ?? '–')}${tipRow(css('--low'), 'Drained', d.bbr?.drained ?? d.d.bbDrained ?? '–')}${tipRow(null, 'High / low', `${d.bbr?.high ?? d.d.bbMax ?? '–'} / ${d.bbr?.low ?? d.d.bbMin ?? '–'}`)}` })));
+  }
+}
+
+// Charged up, drained down, around a zero line.
+function divBars(node, items, { height = 150 } = {}) {
+  node.innerHTML = '';
+  if (!items.some((b) => b.up || b.down)) { node.innerHTML = '<div class="empty">No data in this range.</div>'; return; }
+  const W = Math.max(240, node.clientWidth || 320), H = height, m = { l: 32, r: 6, t: 8, b: 22 };
+  const top = Math.max(10, ...items.map((b) => Math.max(b.up || 0, b.down || 0)));
+  const mid = m.t + (H - m.t - m.b) / 2, k = (H - m.t - m.b) / 2 / top;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H });
+  const g = el('g', { class: 'axis' }, svg);
+  for (const [v, y] of [[`+${Math.round(top)}`, m.t], ['0', mid], [`−${Math.round(top)}`, H - m.b]]) { el('line', { x1: m.l, x2: W - m.r, y1: y, y2: y, stroke: css('--line') }, g); const t = el('text', { x: m.l - 6, y: y + 4, 'text-anchor': 'end' }, g); t.textContent = v; }
+  const band = (W - m.l - m.r) / items.length, bw = Math.max(3, Math.min(22, band * 0.6));
+  const every = Math.ceil(items.length / Math.max(3, Math.floor((W - m.l) / 48)));
+  items.forEach((b, i) => {
+    const x = m.l + band * i + (band - bw) / 2;
+    if (b.up) el('path', { d: topRound(x, mid - b.up * k, bw, b.up * k - 1, 4), fill: css('--optimal') }, svg);
+    if (b.down) el('rect', { x, y: mid + 1, width: bw, height: Math.max(0, b.down * k - 1), rx: 3, fill: css('--low') }, svg);
+    if (b.selected) el('rect', { x: x - 3, y: m.t - 2, width: bw + 6, height: H - m.t - m.b + 4, rx: 6, fill: 'none', stroke: css('--ink-2') }, svg);
+    if ((items.length - 1 - i) % every === 0) { const t = el('text', { x: x + bw / 2, y: H - 6, 'text-anchor': 'middle', fill: css('--muted'), 'font-size': 10.5 }, svg); t.textContent = b.label; }
+    const hit = el('rect', { x: m.l + band * i, y: 0, width: band, height: H, fill: 'transparent' }, svg);
+    hover(hit, b.tip);
+  });
+  node.appendChild(svg);
+}
+
 // ===================== sheet =====================
 const sheet = $('#sheet'), scrim = $('#scrim');
 let sheetOpen = false, lastFocus = null, ignorePop = false;
@@ -882,12 +969,13 @@ function openSheet(key, dayKeyOverride) {
     <div class="sh-hero"><b id="sh-num">${esc(m.show(day))}</b>${m.unit ? `<small>${esc(m.unit)}</small>` : ''}</div>
     ${isScore && val != null ? `<div class="status" style="margin-top:4px"><i style="background:${scoreColor(val)}"></i>${LABEL(val)}</div>` : ''}
     <div class="sh-sub" style="margin-top:10px">${esc(m.sub ? m.sub(day) : '')}</div>
-    <div class="sh-stats">
+    ${m.extra ? '<div id="sh-extra" style="margin-top:16px"></div>' : ''}
+    ${m.noGeneric ? '' : `<div class="sh-stats">
       <div><span>This day</span><b>${val == null ? '–' : esc(fmt(val))}</b></div>
       <div><span>30-day avg</span><b>${base == null ? '–' : esc(fmt(round(base, 1)))}</b></div>
       <div><span>Range</span><b>${vals.length ? `${esc(fmt(Math.min(...vals)))}–${esc(fmt(Math.max(...vals)))}` : '–'}</b></div>
     </div>
-    <div class="chart" id="sh-chart"></div>
+    <div class="chart" id="sh-chart"></div>`}
     <div class="sh-sec"><h4>What it is</h4><p>${esc(m.what || '')}</p></div>
     ${m.how && m.how.length ? `<div class="sh-sec"><h4>How it’s measured</h4><ul>${m.how.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>${m.scale ? `<p style="margin-top:8px">${esc(m.scale)}</p>` : ''}</div>` : ''}
     ${m.tips && m.tips.length ? `<div class="sh-sec"><h4>What helps</h4><ul>${m.tips.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
@@ -897,7 +985,7 @@ function openSheet(key, dayKeyOverride) {
   sheetOpen = true;
   sheet.classList.add('open'); scrim.classList.add('open'); sheet.setAttribute('aria-hidden', 'false');
   body.scrollTop = 0;
-  requestAnimationFrame(() => {
+  if (!m.noGeneric) requestAnimationFrame(() => {
     const node = $('#sh-chart');
     const color = m.color ? css(m.color) : isScore ? null : css('--strain');
     if (m.chart === 'bars') {
@@ -906,6 +994,7 @@ function openSheet(key, dayKeyOverride) {
       line(node, [{ name: m.title, color: color || css('--good'), data: series, dots: true, line: true, gapX: 10 * DAY }], { height: 150, yFmt: fmt, yTick: (x) => String(round(x, 1)), band: m.band ? m.band(day) : null, refs: m.refs || (base != null ? [{ y: base, label: '30-day avg' }] : []), invert: m.invert });
     }
   });
+  if (m.extra) m.extra($('#sh-extra'), day);
   setTimeout(() => $('#sheet-close').focus({ preventScroll: true }), 50);
 }
 function closeSheet(fromHistory = false) {
@@ -1079,6 +1168,7 @@ function viewToday(v) {
   v.innerHTML = `
     <div class="trio" id="trio"></div>
     <div class="card mt"><div class="coach"><div class="badge" style="background:color-mix(in srgb, ${c.color} 18%, transparent);color:${c.color}">${c.icon}</div><div><div class="small muted" style="margin-bottom:2px">${esc(c.when)}</div><h4>${esc(c.title)}</h4><p>${esc(c.text)}</p></div></div></div>
+    <div class="card mt tap" data-metric="bb" role="button" tabindex="0"><div class="card-title"><h3>Body Battery</h3><span>what charged and drained it <span class="chev">›</span></span></div><div id="bb-today"></div></div>
     <div class="cols mt">
       <div class="stack">
         <div class="card"><div class="card-title"><h3>Your day</h3><span>${fmtDay(day.t)}</span></div><div class="timeline" id="tl"></div></div>
@@ -1106,7 +1196,8 @@ function viewToday(v) {
   items.sort((a, b) => a.sort - b.sort);
   $('#tl').innerHTML = items.length ? items.map((x) => `<button class="tl" style="--dot:${x.dot}" ${x.act ? `data-act="${x.act}"` : `data-metric="${x.metric}"`}><span class="time">${x.time}</span><span style="min-width:0"><div class="t">${esc(x.t)}</div><div class="s">${esc(x.s)}</div></span><span class="r">${x.r}</span></button>`).join('') : '<div class="empty">Nothing recorded yet.</div>';
   bindActs($('#tl'));
-  tiles($('#m-key'), ['hrv', 'rhr', 'bb', 'stress', 'resp', 'spo2', 'strain', 'vo2'], day);
+  tiles($('#m-key'), ['hrv', 'rhr', 'stress', 'resp', 'spo2', 'strain', 'vo2', 'steps'], day);
+  bbDetail($('#bb-today'), day);
   const b5 = best5kRecent(), gap = b5 ? Math.round(b5.sec - GOAL.seconds) : null, frac = b5 ? clamp((32 * 60 - b5.sec) / (32 * 60 - GOAL.seconds), 0, 1) : 0;
   $('#goal').innerHTML = `<div class="card-title"><h3>Goal · ${esc(GOAL.label)}</h3><span class="chev">›</span></div><div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><b class="thin" style="font-size:44px;line-height:1">${b5 ? fmtClock(b5.sec) : '–'}</b><span class="small" style="color:${gap != null && gap <= 0 ? 'var(--optimal)' : 'var(--ink-2)'}">${gap == null ? 'No 5K efforts yet' : gap <= 0 ? `✓ beaten by ${fmtClock(-gap)}` : `${fmtClock(gap)} to go`}</span></div>
     <div style="height:6px;border-radius:99px;background:var(--surface-3);margin:14px 0 6px;overflow:hidden"><div style="height:100%;width:${frac * 100}%;border-radius:99px;background:linear-gradient(90deg,var(--activity-b),var(--activity-a))"></div></div><div class="small muted" style="display:flex;justify-content:space-between"><span>32:00</span><span>Goal 27:00 · ${fmtPace(GOAL.seconds / 5)}</span></div>`;
@@ -1447,7 +1538,7 @@ function viewTrends(v) {
       </div>
     </div>
     <div class="card mt"><div class="card-title"><h3>Metric explorer</h3><span>chart any number Garmin sends</span></div>
-      <div class="toolbar"><select class="field" id="ex-kind" aria-label="Dataset"><option value="daily">Daily summaries</option><option value="sleep">Sleep</option><option value="hrv">HRV</option><option value="weight">Weight</option><option value="activities">Activities</option></select>
+      <div class="toolbar"><select class="field" id="ex-kind" aria-label="Dataset"><option value="daily">Daily summaries</option><option value="sleep">Sleep</option><option value="hrv">HRV</option><option value="bb">Body Battery</option><option value="weight">Weight</option><option value="activities">Activities</option></select>
         <select class="field grow" id="ex-path" aria-label="Field"><option>Loading fields…</option></select></div>
       <div class="metrics" id="ex-stats" style="margin-bottom:10px"></div><div class="chart" id="ex-chart"></div></div>`;
   $('#tseg').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; trendDays = Number(b.dataset.d); tryStore(() => localStorage.setItem('trendDays', String(trendDays))); render(); };
@@ -1498,7 +1589,7 @@ async function explorer(t0) {
 
 // ===================== DATA =====================
 let dataKind = 'daily', dataKey = null;
-const DATASETS = [['daily', 'Daily summaries', true], ['sleep', 'Sleep', true], ['hrv', 'HRV', true], ['weight', 'Weight', true], ['activities', 'Activities', true], ['zones', 'Heart-rate zones'], ['fitnessAge', 'Fitness age'], ['profile', 'Profile'], ['probe', 'Endpoint status']];
+const DATASETS = [['daily', 'Daily summaries', true], ['sleep', 'Sleep', true], ['hrv', 'HRV', true], ['bb', 'Body Battery', true], ['weight', 'Weight', true], ['activities', 'Activities', true], ['zones', 'Heart-rate zones'], ['fitnessAge', 'Fitness age'], ['profile', 'Profile'], ['probe', 'Endpoint status']];
 async function viewData(v) {
   const extras = Object.keys(M.raw.extra || {});
   v.innerHTML = `
@@ -1645,6 +1736,25 @@ function demoData() {
   return { summary: { activities: activities.length, days: 181, nights: Object.keys(sleep).length, hrvDays: Object.keys(hrv).length, weighIns: 0, from: dayKey(now - 180 * DAY), to: dayKey(now), lastSync: new Date().toISOString() }, activities, daily, sleep, hrv, weight: {}, zones: [{ sport: 'RUNNING', zone1Floor: 98, zone2Floor: 118, zone3Floor: 137, zone4Floor: 157, zone5Floor: 176, maxHeartRateUsed: 196 }], fitnessAge: { fitnessAge: 29 }, profile: { name: 'Demo user' }, extra: {},
     probe: { at: new Date().toISOString(), results: { profile: { status: 200, ok: true, bytes: 900, path: '/userprofile-service/socialProfile' }, trainingStatus: { status: 403, ok: false, bytes: 0, path: '/metrics-service/metrics/trainingstatus/aggregated' } } } };
 }
+function demoBB(k, D) {
+  let s = parseDay(k) / 1e5 % 2147483647 || 7; const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  const t0 = parseDay(k), end = Math.min(t0 + DAY - 1, Date.now()), wake = t0 + 6.5 * 3600e3;
+  const acts = D.activities.filter((a) => dayKey(parseLocal(a.start)) === k).map((a) => ({ s: parseLocal(a.start), e: parseLocal(a.start) + a.dur * 1000, load: a.load || 30 }));
+  const stress = { s: t0 + (13 + r() * 3) * 3600e3, e: 0 }; stress.e = stress.s + (40 + r() * 50) * 60e3;
+  const rest = { s: t0 + (15.5 + r() * 2) * 3600e3, e: 0 }; rest.e = rest.s + (25 + r() * 30) * 60e3;
+  let lvl = 18 + r() * 15, charged = 0, drained = 0; const rows = [];
+  for (let t = t0; t <= end; t += 3 * 60e3) {
+    let d = t < wake ? 0.5 : -0.11;
+    if (acts.some((a) => t >= a.s && t < a.e)) d = -0.9;
+    if (t >= stress.s && t < stress.e) d = -0.35;
+    if (t >= rest.s && t < rest.e) d = 0.25;
+    const nl = clamp(lvl + d * (0.7 + r() * 0.6), 5, 100); if (nl > lvl) charged += nl - lvl; else drained += lvl - nl; lvl = nl;
+    rows.push([t, 'MEASURED', Math.round(lvl), 3]);
+  }
+  const ev = (type, a, b, impact, fb) => ({ eventType: type, eventStartTimeGmt: new Date(a).toISOString().replace('Z', ''), timezoneOffset: 0, durationInMilliseconds: b - a, bodyBatteryImpact: impact, feedbackType: fb, shortFeedback: fb });
+  const events = [ev('SLEEP', t0, wake, Math.round(charged * 0.8), 'EVENT_SLEEP_GOOD_RECOVERY'), ...acts.map((a) => ev('ACTIVITY', a.s, a.e, -Math.round(a.load / 8), 'EVENT_ACTIVITY_TEMPO')), ...(stress.s < end ? [ev('STRESS', stress.s, stress.e, -Math.round(8 + r() * 6), 'EVENT_STRESSFUL_PERIOD')] : []), ...(rest.s < end ? [ev('RECOVERY', rest.s, rest.e, Math.round(3 + r() * 5), 'EVENT_RESTFUL_PERIOD')] : [])];
+  return { date: k, charged: Math.round(charged), drained: Math.round(drained), bodyBatteryValueDescriptorDTOList: ['timestamp', 'bodyBatteryStatus', 'bodyBatteryLevel', 'bodyBatteryVersion'].map((key, i) => ({ bodyBatteryValueDescriptorIndex: i, bodyBatteryValueDescriptorKey: key })), bodyBatteryValuesArray: rows, bodyBatteryActivityEvent: events, endOfDayBodyBatteryDynamicFeedbackEvent: { feedbackShortType: 'DAY_RECOVERING_AND_INACTIVE' } };
+}
 function demoApi(path) {
   const D = DEMO_DATA, u = new URL(path, location.origin), q = Object.fromEntries(u.searchParams);
   const ok = (body) => Promise.resolve({ status: 200, body });
@@ -1653,6 +1763,7 @@ function demoApi(path) {
   if (u.pathname === '/api/raw') {
     if (q.kind === 'probe') return ok(D.probe);
     if (q.kind === 'extra') return none();
+    if (q.kind === 'bb') { if (q.key) return D.daily[q.key] ? ok(demoBB(q.key, D)) : none(); return ok(Object.fromEntries(Object.keys(D.daily).slice(-30).map((k) => [k, demoBB(k, D)]))); }
     const map = q.kind === 'activities' ? Object.fromEntries(D.activities.map((a) => [a.id, { activityId: a.id, startTimeLocal: a.start, activityName: a.name, ...a }])) : D[q.kind];
     if (q.kind === 'sleep' && q.key && map?.[q.key]) return ok({ ...map[q.key], sleepScores: { overall: { value: map[q.key].score }, totalDuration: { value: 82, qualifierKey: 'GOOD' }, stress: { value: 74, qualifierKey: 'FAIR' }, deepPercentage: { value: 88, qualifierKey: 'EXCELLENT' }, remPercentage: { value: 79, qualifierKey: 'GOOD' }, restlessness: { value: 65, qualifierKey: 'FAIR' } } });
     if (q.key) return map?.[q.key] != null ? ok(map[q.key]) : none();
@@ -1695,7 +1806,11 @@ $('#sync-btn').onclick = () => sync(false);
 let rt, lastW = innerWidth; addEventListener('resize', () => { if (Math.abs(innerWidth - lastW) < 40) return; lastW = innerWidth; clearTimeout(rt); rt = setTimeout(() => render(true), 200); });
 
 async function boot() {
-  if (DEMO) { DEMO_DATA = demoData(); return start(DEMO_DATA); }
+  if (DEMO) {
+    DEMO_DATA = demoData();
+    DEMO_DATA.bb = Object.fromEntries(Object.keys(DEMO_DATA.daily).map((k) => { const p = parseBBReport(demoBB(k, DEMO_DATA)); const l = p.values.map((v) => v[1]); return [k, { charged: p.charged, drained: p.drained, high: Math.max(...l), low: Math.min(...l), last: l.at(-1) }]; }));
+    return start(DEMO_DATA);
+  }
   const { status, body } = await api('/api/data');
   if (status === 401) { $('#login').hidden = false; $('#app').hidden = true; $('#pw').focus(); return; }
   $('#login').hidden = true; $('#app').hidden = false;
