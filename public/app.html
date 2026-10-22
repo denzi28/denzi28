@@ -389,8 +389,8 @@ const fmtDay = (t) => { const d = new Date(t); return `${WD[d.getDay()]}, ${MON[
 const fmtDate = (t) => { const d = new Date(t); return `${MON[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; };
 const fmtTime = (t) => new Date(t).toTimeString().slice(0, 5);
 const fmtClock = (sec) => { if (sec == null || !isFinite(sec)) return '–'; sec = Math.round(sec); const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60; return h ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`; };
-const fmtHM = (sec) => { if (sec == null) return '–'; const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60); return `${h}:${String(m).padStart(2, '0')}`; };
-const fmtHours = (sec) => { if (sec == null || !isFinite(sec)) return '–'; if (!sec) return '0m'; const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60); return h ? `${h}h ${m}m` : `${m}m`; };
+const fmtHM = (sec) => { if (sec == null) return '–'; const t = Math.round(sec / 60), h = Math.floor(t / 60), m = t % 60; return `${h}:${String(m).padStart(2, '0')}`; };
+const fmtHours = (sec) => { if (sec == null || !isFinite(sec)) return '–'; if (!sec) return '0m'; const t = Math.round(sec / 60), h = Math.floor(t / 60), m = t % 60; return h ? `${h}h ${m}m` : `${m}m`; };
 const fmtPace = (s) => (s && isFinite(s) ? `${fmtClock(s)} /km` : '–');
 const fmtKm = (m, dp = 2) => (m == null ? '–' : `${(m / 1000).toFixed(dp)} km`);
 const fmtInt = (v) => (v == null || !isFinite(v) ? '–' : Math.round(v).toLocaleString('en-US'));
@@ -410,7 +410,7 @@ function flatten(obj, prefix = '', out = {}) {
   if (typeof obj === 'object') { const e = Object.entries(obj); if (!e.length && prefix) out[prefix] = '{}'; for (const [k, v] of e) flatten(v, prefix ? `${prefix}.${k}` : k, out); return out; }
   out[prefix] = obj; return out;
 }
-const humanize = (path) => path.replace(/\[(\d+)\]/g, ' #$1').split('.').map((p) => p.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase())).join(' › ');
+const humanize = (path) => path.replace(/\[(\d+)\]/g, ' #$1').split('.').map((p) => p.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase()).replace(/\bRhr\b/, 'Resting HR').replace(/\bBmi\b/, 'BMI').replace(/\bHrv\b/, 'HRV').replace(/\bSpo2\b/i, 'SpO2')).join(' › ');
 function readable(path, v) {
   if (typeof v !== 'number') return null;
   const p = path.toLowerCase();
@@ -602,7 +602,8 @@ function buildModel(D) {
     const hrvBase = prev.map((p) => p.hrv?.last), rhrBase = prev.map((p) => p.d.rhr);
     const debt = sum(days.slice(Math.max(0, i - 3), i).map((p) => (p.asleep ? Math.max(0, p.sleepNeed - p.asleep) : 0))) / 3;
     const yesterday = byKey.get(dayKey(day.t - DAY));
-    day.sleepNeed = NEED + Math.max(0, (yesterday?.strain || 0) - 10) * 180 + 0.3 * debt;
+    day.sleepNeed = day.sleep?.need || NEED + Math.max(0, (yesterday?.strain || 0) - 10) * 180 + 0.3 * debt;
+    day.sleepNeedSource = day.sleep?.need ? 'Garmin' : 'Pulse';
     day.asleep = day.sleep ? ((day.sleep.deep || 0) + (day.sleep.light || 0) + (day.sleep.rem || 0)) || day.sleep.total : null;
     day.sleepPerf = day.asleep ? clamp(Math.round((day.asleep / day.sleepNeed) * 100), 1, 100) : null;
     day.hrvBase = avg(hrvBase); day.rhrBase = avg(rhrBase);
@@ -742,6 +743,7 @@ const recent = (key, n) => { const i = M.days.findIndex((d) => d.key === key); r
 const S = (fn) => (day) => recent(day.key, 30).map((d) => [d.t, fn(d)]).filter((p) => p[1] != null && isFinite(p[1]));
 const fmtBpm = (v) => `${round(v)} bpm`;
 const signed = (v, dp = 0, u = '') => (v == null ? '–' : `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(dp)}${u}`);
+const fa = () => M?.raw?.fitnessAge || null;
 const lastVo2 = (day) => { const a = M.acts.filter((x) => x.vo2 && x.t <= day.t + DAY); return a.length ? a[a.length - 1] : null; };
 
 const scoreMetric = (title, get, extra) => ({ title, kind: 'score', unit: '', value: get, show: (d) => (get(d) == null ? '–' : String(get(d))), sub: (d) => LABEL(get(d)), series: S(get), chart: 'bars', fmt: (v) => String(round(v)), max: 100, ...extra });
@@ -782,6 +784,7 @@ const METRICS = {
     what: 'HRV is the tiny variation in time between heartbeats. Your Garmin measures it while you sleep. A higher value than usual means the “rest and recover” side of your nervous system is in charge.',
     how: ['Shown is last night’s average (rMSSD) from Garmin.', 'The shaded band is Garmin’s “balanced” range for you, built from your recent weeks.', 'HRV varies hugely between people — only compare it with your own normal.'],
     tips: ['Drops of 10% or more often follow hard training, alcohol, late meals, stress or getting ill.', 'A slowly rising trend over weeks usually means improving fitness.'],
+    extra: (node, day) => { node.innerHTML = `${day.hrv?.feedback ? `<p class="small muted" style="margin:0 0 10px">Garmin: ${esc(niceCode(day.hrv.feedback))}</p>` : ''}<div class="sh-sec" style="margin-top:0"><h4>Last night, every 5 minutes</h4><div class="hn"></div></div>`; hrvNight($('.hn', node), day, { tall: true }); },
     related: ['c.hrv', 'readiness'] },
   rhr: { title: 'Resting heart rate', unit: 'bpm', value: (d) => d.d.rhr, show: (d) => d.d.rhr ?? '–', sub: (d) => (d.rDiff != null ? `${signed(d.rDiff, 1)} bpm vs your 30-day normal (${round(d.rhrBase, 1)})` : 'Lowest heart rate of the day'), series: S((d) => d.d.rhr), fmt: fmtBpm, color: '--low', higherBetter: false, base: (d) => d.rhrBase,
     what: 'Your resting heart rate is the lowest your heart beats while fully at rest, usually during sleep. It falls as your aerobic fitness improves.',
@@ -812,7 +815,7 @@ const METRICS = {
     what: 'Every step your Garmin counted today, including runs.', how: ['Your step goal comes from Garmin (it adapts automatically unless you’ve set one).'], tips: ['Steps between workouts matter for recovery and overall health, not just total exercise.'], related: ['a.stay'] },
   calories: { title: 'Calories', unit: 'kcal', value: (d) => d.d.calTotal, show: (d) => fmtInt(d.d.calTotal), sub: (d) => (d.d.calActive != null ? `${fmtInt(d.d.calActive)} active · ${fmtInt(d.d.calTotal - d.d.calActive)} resting` : 'Total burned'), series: S((d) => d.d.calTotal), fmt: fmtInt, color: '--fair', chart: 'bars',
     what: 'Total energy burned today: your resting metabolism plus everything active.', how: ['Estimated by Garmin from your profile, heart rate and movement — treat it as a rough guide.'], tips: [], related: ['steps'] },
-  intensity: { title: 'Intensity minutes', unit: 'min', value: (d) => d.im, show: (d) => d.im, sub: (d) => `${d.d.imMod ?? 0} moderate · ${d.d.imVig ?? 0} vigorous`, series: S((d) => d.im), fmt: (v) => `${v} min`, color: '--strain', chart: 'bars',
+  intensity: { title: 'Intensity minutes', unit: 'min', value: (d) => d.im, show: (d) => d.im, sub: (d) => `${d.d.imMod ?? 0} moderate · ${d.d.imVig ?? 0} vigorous${d.d.imGoal ? ` · weekly goal ${d.d.imGoal}` : ''}`, series: S((d) => d.im), fmt: (v) => `${v} min`, color: '--strain', chart: 'bars',
     what: 'Minutes spent at moderate or vigorous effort. Vigorous minutes count double.', how: ['Health guidelines suggest 150 a week (about 22 a day).'], tips: [], related: ['a.targets'] },
   distance: { title: 'Distance', unit: 'km', value: (d) => (d.d.distance != null ? d.d.distance / 1000 : null), show: (d) => (d.d.distance != null ? (d.d.distance / 1000).toFixed(1) : '–'), sub: () => 'All movement today', series: S((d) => (d.d.distance != null ? round(d.d.distance / 1000, 2) : null)), fmt: (v) => `${v.toFixed(1)} km`, color: '--strain', chart: 'bars',
     what: 'Total distance covered today, walking and running.', how: ['Measured by Garmin from steps, stride and GPS.'], tips: [], related: ['steps'] },
@@ -820,6 +823,21 @@ const METRICS = {
   vo2: { title: 'VO2 max', unit: '', value: (d) => lastVo2(d)?.vo2, show: (d) => lastVo2(d)?.vo2 ?? '–', sub: (d) => (lastVo2(d) ? `Last updated ${fmtDate(lastVo2(d).t)}` : 'From runs with GPS and heart rate'),
     series: (day) => M.acts.filter((a) => a.vo2 && a.t <= day.t + DAY && a.t > day.t - 180 * DAY).map((a) => [a.t, a.vo2]), fmt: String, color: '--strain', higherBetter: true,
     what: 'VO2 max is the most oxygen your body can use per minute, per kilo — the engine size behind your running.', how: ['Garmin estimates it from your pace and heart rate on outdoor runs.', 'The chart shows the last 6 months.'], tips: ['Intervals at 5K pace or faster and steady easy mileage both raise it.'], related: ['goal5k'] },
+  fitnessAge: { title: 'Fitness age', unit: 'yrs', noGeneric: true, value: () => fa()?.fitnessAge, show: () => (fa()?.fitnessAge != null ? round(fa().fitnessAge, 1) : '–'),
+    sub: () => { const f = fa(); if (!f) return 'Not available from your watch yet'; return [f.chronologicalAge != null ? `Actual age ${f.chronologicalAge}` : null, f.achievableFitnessAge != null ? `achievable ${round(f.achievableFitnessAge, 1)}` : null, f.previousFitnessAge != null ? `previously ${round(f.previousFitnessAge, 1)}` : null].filter(Boolean).join(' · '); },
+    series: () => [], fmt: String,
+    extra: (node) => {
+      const comps = fa()?.components;
+      if (!comps || typeof comps !== 'object') { node.innerHTML = ''; return; }
+      const rows = Object.entries(comps).map(([k, v]) => {
+        if (v && typeof v === 'object') { const cur = v.value ?? v.currentValue, tgt = v.targetValue ?? v.target, imp = v.improvementValue ?? v.improvement; return [humanize(k), `${cur != null ? round(cur, 1) : '–'}${tgt != null ? ` → target ${round(tgt, 1)}` : ''}`, imp]; }
+        return [humanize(k), String(typeof v === 'number' ? round(v, 1) : v), null];
+      });
+      node.innerHTML = `<div class="sh-sec" style="margin-top:0"><h4>What drives it</h4>${rows.map(([k, val, imp]) => `<div class="fact-line"><span>${esc(k)}</span><b>${esc(val)}${imp ? ` <span class="good small">(−${round(imp, 1)} yrs)</span>` : ''}</b></div>`).join('')}</div>`;
+    },
+    what: 'Fitness age compares your fitness with what’s typical for different ages. It’s Garmin’s estimate from your VO2 max, resting heart rate, activity and body composition.',
+    how: ['Calculated by Garmin and updated as your VO2 max, resting heart rate and weekly activity change.', 'The breakdown shows each factor, the target Garmin suggests, and how many years reaching it could take off.'],
+    tips: ['More vigorous minutes each week and a lower resting heart rate move it the most.'], related: ['vo2', 'rhr', 'intensity'] },
   goal5k: { title: 'Sub-27 5K', unit: '', value: () => best5kRecent()?.sec, show: () => (best5kRecent() ? fmtClock(best5kRecent().sec) : '–'), sub: () => { const b = best5kRecent(); if (!b) return 'No 5K efforts yet'; const gap = Math.round(b.sec - GOAL.seconds); return gap <= 0 ? `Goal beaten by ${fmtClock(-gap)}` : `${fmtClock(gap)} to go · best of the last 90 days`; },
     series: (day) => M.acts.filter((a) => isRun(a) && best5k(a) && a.t > day.t - 180 * DAY && a.t <= day.t + DAY).map((a) => [a.t, round(best5k(a))]), fmt: fmtClock, color: '--activity-b', invert: true, refs: [{ y: GOAL.seconds, label: '27:00' }],
     what: `Your goal is to run 5 km in under 27:00 — an average pace of ${fmtPace(GOAL.seconds / 5)}.`, how: ['Each point is your fastest 5 km inside a run (Garmin’s fastest-split), over the last 6 months.', 'Lower on the chart is faster.'],
@@ -843,7 +861,7 @@ const METRICS = {
 
   // sleep contributors
   's.total': { title: 'Total sleep', kind: 'score', value: (d) => d.sc?.total, show: (d) => d.sc?.total ?? '–', sub: (d) => (d.asleep ? `${fmtHours(d.asleep)} of ${fmtHours(d.sleepNeed)} needed` : '–'), series: S((d) => d.sc?.total), chart: 'bars', max: 100, fmt: String,
-    what: 'Time actually asleep compared with what you needed.', how: ['Your need starts at 7.5 h. It grows by 3 min for each strain point above 10 the day before, plus 30% of the sleep you’ve been missing over the last 3 nights.'], tips: [], related: ['c.sleepBal'] },
+    what: 'Time actually asleep compared with what you needed.', how: ['Uses Garmin’s own sleep need for the night when your watch provides it.', 'Otherwise your need starts at 7.5 h, grows by 3 min for each strain point above 10 the day before, plus 30% of the sleep you’ve been missing over the last 3 nights.'], tips: [], related: ['c.sleepBal'] },
   's.eff': { title: 'Efficiency', kind: 'score', value: (d) => d.sc?.eff, show: (d) => d.sc?.eff ?? '–', sub: (d) => (d.sleepEff ? `${Math.round(d.sleepEff * 100)}% of time in bed asleep` : '–'), series: S((d) => d.sc?.eff), chart: 'bars', max: 100, fmt: String,
     what: 'The share of your time in bed you spent asleep.', how: ['95% or more is full marks; 70% or less scores lowest.'], tips: ['If you lie awake for more than 20 minutes, get up briefly and return when sleepy.'], related: ['s.rest'] },
   's.rest': { title: 'Restfulness', kind: 'score', value: (d) => d.sc?.rest, show: (d) => d.sc?.rest ?? '–', sub: (d) => (d.sleep ? `${fmtHours(d.sleep.awake || 0)} awake${d.sleep.restless != null ? ` · ${d.sleep.restless} wake-ups or restless moments` : ''}` : '–'), series: S((d) => d.sc?.rest), chart: 'bars', max: 100, fmt: String,
@@ -867,6 +885,32 @@ function best5k(a) { return a.f5k || (a.dist >= 4950 && a.dist <= 5400 ? a.dur *
 function best5kRecent() {
   const pick = (from) => M.acts.filter((a) => isRun(a) && a.t >= from).map((a) => ({ a, t: a.t, sec: best5k(a) })).filter((x) => x.sec > 600).sort((x, y) => x.sec - y.sec)[0];
   return pick(Date.now() - 90 * DAY) || pick(0) || null;
+}
+
+// Garmin sends many texts as codes like POSITIVE_LONG_AND_DEEP; make them readable.
+const niceCode = (v) => String(v).replace(/^(EVENT_|BODY_BATTERY_|DAY_|END_OF_DAY_|HRV_|SLEEP_)/, '').replace(/_\d+$/, '').replace(/_/g, ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase());
+
+// Overnight HRV readings from Garmin's per-night HRV record.
+function parseHrvNight(obj) {
+  if (!obj || typeof obj !== 'object') return [];
+  let arr = obj.hrvReadings;
+  if (!Array.isArray(arr)) arr = Object.values(obj).find((v) => Array.isArray(v) && v[0] && typeof v[0] === 'object' && Object.keys(v[0]).some((k) => /hrv|value/i.test(k)));
+  if (!Array.isArray(arr)) return [];
+  return arr.map((r) => {
+    const v = r.hrvValue ?? r.value ?? r.hrv;
+    const t = toMs(r.readingTimeGMT ?? r.readingTimeGmt ?? r.timestampGMT ?? r.timestamp ?? r.readingTimeLocal);
+    return [t, v];
+  }).filter((p) => isFinite(p[0]) && typeof p[1] === 'number').sort((a, b) => a[0] - b[0]);
+}
+async function hrvNight(node, day, { tall = false } = {}) {
+  node.innerHTML = '<div class="empty">Loading…</div>';
+  const { status, body } = await cached(`/api/raw?kind=hrvDetail&key=${day.key}`);
+  if (!node.isConnected) return;
+  const pts = status === 200 ? parseHrvNight(body) : [];
+  if (!pts.length) { node.innerHTML = `<div class="empty">${status === 200 || day.hrv ? 'No 5-minute HRV readings for this night yet — sync (↻) to load them.' : 'No HRV recorded this night.'}</div>`; return; }
+  const vals = pts.map((p) => p[1]);
+  node.innerHTML = `<div class="sh-stats" style="margin:0 0 10px"><div><span>Average</span><b>${round(avg(vals))} ms</b></div><div><span>Highest 5 min</span><b>${Math.max(...vals)} ms</b></div><div><span>Lowest</span><b>${Math.min(...vals)} ms</b></div></div><div class="chart"></div>`;
+  line($('.chart', node), [{ name: 'HRV', color: css('--readiness-a'), data: pts, dots: true, line: true }], { height: tall ? 170 : 130, xFmt: (t) => fmtTime(t), xTick: (t) => fmtTime(t), yFmt: (v) => `${v} ms`, yTick: String, gapX: 40 * 60e3, refs: day.hrvBase ? [{ y: day.hrvBase, label: 'your normal' }] : [] });
 }
 
 // ===================== Body Battery detail =====================
@@ -1239,6 +1283,8 @@ function viewSleep(v) {
         <div class="card" id="score-card"><div class="card-title"><h3>Garmin’s breakdown</h3></div><div class="empty">Loading…</div></div>
       </div>
       <div class="stack">
+        <div class="card"><div class="card-title"><h3>From Garmin</h3><span>your watch’s own read</span></div><div id="garmin-sleep"></div></div>
+        <button class="card tap" data-metric="hrv" style="display:block;width:100%;text-align:left"><div class="card-title"><h3>Overnight HRV</h3><span>every 5 minutes <span class="chev">›</span></span></div><div id="hrv-night"></div></button>
         <div class="card"><div class="card-title"><h3>Key numbers</h3></div><div id="facts"></div></div>
         <div class="card"><div class="card-title"><h3>Last 14 nights</h3><span>hours by stage</span></div><div class="legend" id="st-legend"></div><div class="chart" id="stage-bars"></div></div>
         <div class="card"><div class="card-title"><h3>Bedtime &amp; wake-up</h3><span>last 30 nights</span></div><div class="legend" id="bt-legend"></div><div class="chart" id="bedtime"></div></div>
@@ -1246,7 +1292,7 @@ function viewSleep(v) {
     </div>
     <div class="section-label">Everything Garmin sent for this night</div>
     <div class="card" id="raw-sleep"></div>`;
-  heroScore($('#hero'), day.sleepScore, 'sleep', 'Sleep score', day.asleep ? `${fmtHours(day.asleep)} asleep of the ${fmtHours(day.sleepNeed)} you needed${day.sleepScoreSource ? ` · ${day.sleepScoreSource} score` : ''}.` : 'No sleep recorded for this night.');
+  heroScore($('#hero'), day.sleepScore, 'sleep', 'Sleep score', day.asleep ? `${fmtHours(day.asleep)} asleep of the ${fmtHours(day.sleepNeed)} you needed (${day.sleepNeedSource === 'Garmin' ? 'Garmin’s estimate' : 'Pulse estimate'})${day.sleepScoreSource ? ` · ${day.sleepScoreSource} score` : ''}.` : 'No sleep recorded for this night.');
   contributors($('#contrib'), [['s.total'], ['s.eff'], ['s.rest'], ['s.rem'], ['s.deep'], ['s.timing']], day, css('--sleep-b'));
   const facts = [
     ['Time asleep', day.asleep ? fmtHours(day.asleep) : '–', 's.total'], ['Time in bed', s?.start && s?.end ? fmtHours((s.end - s.start) / 1000) : '–', 's.eff'],
@@ -1255,8 +1301,17 @@ function viewSleep(v) {
     ['Overnight HRV', day.hrv?.last ? `${day.hrv.last} ms` : '–', 'hrv'], ['Resting heart rate', day.d.rhr ? `${day.d.rhr} bpm` : '–', 'rhr'],
     ['Respiration', s?.resp != null ? `${round(s.resp, 1)} brpm` : '–', 'resp'], ['Blood oxygen', s?.spo2 != null ? `${round(s.spo2)}%` : '–', 'spo2'],
     ['Sleep stress', s?.stress != null ? `${round(s.stress, 1)}` : '–', 'stress'], ['Restless moments', s?.restless ?? '–', 's.rest'],
+    ['Heart rate asleep', s?.avgHR != null ? `${round(s.avgHR)} bpm avg` : '–', 'rhr'], ['Breathing range', s?.respLow != null ? `${round(s.respLow)}–${round(s.respHigh)} brpm` : '–', 'resp'],
+    ['Naps', s?.nap ? fmtHours(s.nap) : 'none', 's.total'],
   ];
   $('#facts').innerHTML = facts.map(([k, val, m]) => `<button class="fact-line" data-metric="${m}"><span>${k}</span><b>${esc(val)}</b></button>`).join('');
+  const gs = [
+    ['Sleep need', s?.need ? fmtHours(s.need) : null], ['Need tonight', s?.nextNeed ? fmtHours(s.nextNeed) : null],
+    ['Insight', s?.insight ? niceCode(s.insight) : null], ['Feedback', s?.feedback ? niceCode(s.feedback) : null],
+    ['HRV status', day.hrv?.feedback ? niceCode(day.hrv.feedback) : day.hrv?.status ? niceCode(day.hrv.status) : null],
+  ].filter((x) => x[1]);
+  $('#garmin-sleep').innerHTML = gs.length ? gs.map(([k, val]) => `<div class="fact-line"><span>${k}</span><b>${esc(val)}</b></div>`).join('') : '<div class="empty">Garmin sent no extra notes for this night.</div>';
+  hrvNight($('#hrv-night'), day);
   const st = [['deep', 'Deep', '--deep'], ['light', 'Light', '--light'], ['rem', 'REM', '--rem'], ['awake', 'Awake', '--awake']];
   if (s) {
     const tot = sum(st.map(([k]) => s[k] || 0)) || 1;
@@ -1310,7 +1365,7 @@ function viewActivity2(v) {
   bindActs($('#act-list'));
   const bounds = zoneBounds();
   $('#zones').innerHTML = zt ? zones.map((z, i) => `<div class="zone-row"><span class="muted">Zone ${i + 1}${bounds[i] ? `<br><span class="small">${bounds[i]}</span>` : ''}</span><div class="bar"><div style="width:${(z / Math.max(...zones)) * 100}%;background:var(--z${i + 1})"></div></div><span class="v">${fmtHours(z)} · ${Math.round((z / zt) * 100)}%</span></div>`).join('') : '<div class="empty">No heart-rate zone data this day.</div>';
-  tiles($('#m-act'), ['strain', 'steps', 'calories', 'intensity', 'distance', 'floors'], day);
+  tiles($('#m-act'), ['strain', 'steps', 'calories', 'intensity', 'distance', 'floors', ...(fa()?.fitnessAge != null ? ['fitnessAge'] : [])], day);
   const loadBy = new Map(M.days.map((d) => [d.key, d.load]));
   const end = parseDay(cur), sumBack = (t, n) => { let s = 0; for (let i = 0; i < n; i++) s += loadBy.get(dayKey(t - i * DAY)) || 0; return s; };
   const acute = [], chronic = [];
@@ -1336,7 +1391,7 @@ function viewExplore(v) {
   const items = [['workouts', 'Workouts', `${M.acts.length} activities, laps, charts`], ['trends', 'Trends', 'Weeks to a year, plus any metric'], ['data', 'Data', 'Every raw field Garmin sent'], ['profile', 'Profile', 'Sync, history, settings']];
   v.innerHTML = `<div class="explore">${items.map(([r, t, s]) => `<button class="card tap" data-go="${r}"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[r]}</svg></span><span><b>${t}</b><span>${s}</span></span></button>`).join('')}</div>
     <div class="section-label">Learn about your numbers</div>
-    <div class="chips">${['readiness', 'sleepScore', 'activityScore', 'strain', 'hrv', 'rhr', 'bb', 'stress', 'resp', 'spo2', 'vo2', 'goal5k'].map((k) => `<button data-metric="${k}">${esc(METRICS[k].title)}</button>`).join('')}</div>`;
+    <div class="chips">${['readiness', 'sleepScore', 'activityScore', 'strain', 'hrv', 'rhr', 'bb', 'stress', 'resp', 'spo2', 'vo2', 'fitnessAge', 'goal5k'].map((k) => `<button data-metric="${k}">${esc(METRICS[k].title)}</button>`).join('')}</div>`;
   v.querySelectorAll('[data-go]').forEach((b) => (b.onclick = () => go(b.dataset.go)));
 }
 // ===================== shared bits =====================
@@ -1358,7 +1413,7 @@ function metricCard(k, v, unit, d, sparkData, color, fmt) {
 
 function actRow(a) {
   const pace = a.dist ? fmtPace((a.moving || a.dur) / (a.dist / 1000)) : '';
-  return `<button class="row" data-act="${a.id}"><div class="ic">${typeIcon(a.type)}</div><div style="min-width:0"><div class="t">${esc(a.name || prettyType(a.type))}</div><div class="s">${fmtDay(a.t)} ${fmtTime(a.t)} · ${fmtClock(a.dur)}${a.dist ? ` · ${fmtKm(a.dist)} · ${pace}` : ''}${a.avgHR ? ` · ${Math.round(a.avgHR)} bpm` : ''}</div></div><div class="chip">${strainFromLoad(a.load, 0).toFixed(1)}<small>STRAIN</small></div></button>`;
+  return `<button class="row" data-act="${a.id}"><div class="ic">${typeIcon(a.type)}</div><div style="min-width:0"><div class="t">${esc(a.name || prettyType(a.type))}</div><div class="s">${a.teLabel ? `${esc(niceCode(a.teLabel))} · ` : ''}${fmtDay(a.t)} ${fmtTime(a.t)} · ${fmtClock(a.dur)}${a.dist ? ` · ${fmtKm(a.dist)} · ${pace}` : ''}${a.avgHR ? ` · ${Math.round(a.avgHR)} bpm` : ''}</div></div><div class="chip">${strainFromLoad(a.load, 0).toFixed(1)}<small>STRAIN</small></div></button>`;
 }
 const bindActs = (root) => root.querySelectorAll('[data-act]').forEach((b) => (b.onclick = () => go(`workout/${b.dataset.act}`)));
 
@@ -1430,6 +1485,10 @@ async function viewActivity(v, id) {
     ['Ground contact', a.gct ? `${Math.round(a.gct)} ms` : null], ['Vertical osc.', a.vo ? `${a.vo.toFixed(1)} cm` : null], ['Vertical ratio', a.vr ? `${a.vr.toFixed(1)}%` : null], ['Steps', a.steps ? fmtInt(a.steps) : null],
     ['Fastest 1 km', a.f1k ? fmtClock(a.f1k) : null], ['Fastest mile', a.f1mi ? fmtClock(a.f1mi) : null], ['Fastest 5 km', a.f5k ? fmtClock(a.f5k) : null], ['Fastest 10 km', a.f10k ? fmtClock(a.f10k) : null],
     ['Temperature', a.maxTemp != null ? `${Math.round(a.minTemp ?? a.maxTemp)}–${Math.round(a.maxTemp)} °C` : null],
+    ['Training effect', a.teLabel ? niceCode(a.teLabel) : null], ['How it felt', a.feel != null ? (['Very weak', 'Weak', 'Normal', 'Strong', 'Very strong'][Math.min(4, Math.round(a.feel / 25))] || a.feel) : null],
+    ['Perceived effort', a.rpe != null ? `${round(a.rpe > 10 ? a.rpe / 10 : a.rpe, 1)} / 10` : null], ['Max power', a.maxPower ? `${Math.round(a.maxPower)} W` : null],
+    ['Normalized power', a.normPower ? `${Math.round(a.normPower)} W` : null], ['Recovery time', a.recovery ? fmtHours(a.recovery > 300 ? a.recovery : a.recovery * 60) : null],
+    ['Intensity min', a.moderateMin != null || a.vigorousMin != null ? `${a.moderateMin ?? 0} mod · ${a.vigorousMin ?? 0} vig` : null], ['Sweat loss', a.sweat ? `${Math.round(a.sweat)} ml` : null],
   ].filter(([, val]) => val != null);
   v.innerHTML = `
     <div class="card"><div class="row" style="border:0;padding:0;grid-template-columns:52px minmax(0,1fr)"><div class="ic" style="width:52px;height:52px;font-size:24px">${typeIcon(a.type)}</div>
@@ -1589,7 +1648,7 @@ async function explorer(t0) {
 
 // ===================== DATA =====================
 let dataKind = 'daily', dataKey = null;
-const DATASETS = [['daily', 'Daily summaries', true], ['sleep', 'Sleep', true], ['hrv', 'HRV', true], ['bb', 'Body Battery', true], ['weight', 'Weight', true], ['activities', 'Activities', true], ['zones', 'Heart-rate zones'], ['fitnessAge', 'Fitness age'], ['profile', 'Profile'], ['probe', 'Endpoint status']];
+const DATASETS = [['daily', 'Daily summaries', true], ['sleep', 'Sleep', true], ['hrv', 'HRV', true], ['bb', 'Body Battery', true], ['hrvDetail', 'HRV, every 5 min', true], ['weight', 'Weight', true], ['activities', 'Activities', true], ['zones', 'Heart-rate zones'], ['fitnessAge', 'Fitness age'], ['profile', 'Profile'], ['probe', 'Endpoint status']];
 async function viewData(v) {
   const extras = Object.keys(M.raw.extra || {});
   v.innerHTML = `
@@ -1721,19 +1780,19 @@ function demoData() {
       const tot = (6.1 + r() * 2.1) * 3600, awake = Math.round(r() * 0.4 * 3600);
       const deep = Math.round(tot * (0.16 + r() * 0.06)), rem = Math.round(tot * (0.2 + r() * 0.05));
       const startWall = Date.UTC(2000, 0, 1, 22, 30) + (r() - 0.5) * 2.4 * 3600e3; // wall-clock bedtime around 22:30
-      sleep[k] = { total: Math.round(tot), deep, rem, light: Math.round(tot - deep - rem), awake, score: Math.round(58 + r() * 34), restless: Math.round(10 + r() * 30), spo2: 95, resp: 14.2, stress: round(12 + r() * 10, 1), start: startWall, end: startWall + (tot + awake) * 1000 };
+      sleep[k] = { total: Math.round(tot), deep, rem, light: Math.round(tot - deep - rem), awake, score: Math.round(58 + r() * 34), restless: Math.round(10 + r() * 30), spo2: 95, resp: 14.2, stress: round(12 + r() * 10, 1), start: startWall, end: startWall + (tot + awake) * 1000, need: Math.round((7.5 + r() * 0.8) * 3600), nextNeed: Math.round((7.6 + r() * 0.6) * 3600), insight: ['POSITIVE_LONG_AND_DEEP', 'NEGATIVE_LATE_BED_TIME', 'POSITIVE_RESTFUL_DAY'][Math.floor(r() * 3)], feedback: 'POSITIVE_DEEP', avgHR: Math.round(52 + r() * 6), respLow: 11, respHigh: 18, nap: r() < 0.15 ? 1500 : null };
     }
-    if (r() > 0.05) hrv[k] = { last: Math.round(46 + prog * 7 + r() * 14 + wave * 4), week: Math.round(49 + prog * 7), status: 'BALANCED', low: 42, high: 60 };
+    if (r() > 0.05) hrv[k] = { last: Math.round(46 + prog * 7 + r() * 14 + wave * 4), week: Math.round(49 + prog * 7), status: 'BALANCED', low: 42, high: 60, feedback: 'HRV_BALANCED_6' };
     if (r() < 0.5) {
       const [name, mult] = names[Math.floor(r() * names.length)];
       const dist = name === 'Long Run' ? 10000 + r() * 4000 : name.startsWith('Intervals') ? 7000 + r() * 1500 : 4000 + r() * 4000;
       const pace = 350 - prog * 22 + r() * 25 - (mult > 1.2 ? 20 : 0), dur = (dist / 1000) * pace;
       const zones = (mult > 1.2 ? [300, 900, 600, 700, 300] : [600, 1300, 300, 60, 0]).map((z) => z * (dur / 3000) * (0.7 + r() * 0.6));
-      activities.push({ id: id++, start: `${k} 07:${String(Math.floor(r() * 50) + 10)}:00`, type: 'running', name, dist, dur, moving: dur * 0.98, elapsed: dur * 1.03, elev: 20 + r() * 80, elevLoss: 20 + r() * 80, avgHR: Math.round(138 + mult * 14 + r() * 8), maxHR: 176, cal: Math.round((dist / 1000) * 68), load: Math.round((50 + r() * 50) * mult * (dist / 6000)), aero: 2.6 + r() * 1.8, anaer: r() * 2.5, zones, vo2: Math.round(45 + prog * 3), f1k: pace * 0.93, f5k: dist >= 5000 ? pace * 5 * (mult > 1.2 ? 0.95 : 0.99) : null, cadence: 168 + r() * 10, stride: 105 + r() * 15, avgSpeed: 1000 / pace, maxSpeed: 1000 / (pace * 0.8), location: 'Istanbul' });
+      activities.push({ id: id++, start: `${k} 07:${String(Math.floor(r() * 50) + 10)}:00`, type: 'running', name, dist, dur, moving: dur * 0.98, elapsed: dur * 1.03, elev: 20 + r() * 80, elevLoss: 20 + r() * 80, avgHR: Math.round(138 + mult * 14 + r() * 8), maxHR: 176, cal: Math.round((dist / 1000) * 68), load: Math.round((50 + r() * 50) * mult * (dist / 6000)), aero: 2.6 + r() * 1.8, anaer: r() * 2.5, zones, vo2: Math.round(45 + prog * 3), f1k: pace * 0.93, f5k: dist >= 5000 ? pace * 5 * (mult > 1.2 ? 0.95 : 0.99) : null, cadence: 168 + r() * 10, stride: 105 + r() * 15, teLabel: mult > 1.2 ? 'VO2MAX' : 'AEROBIC_BASE', feel: 50, rpe: mult > 1.2 ? 70 : 40, recovery: Math.round(600 + r() * 1800), avgSpeed: 1000 / pace, maxSpeed: 1000 / (pace * 0.8), location: 'Istanbul' });
     }
     if (r() < 0.12) activities.push({ id: id++, start: `${k} 18:30:00`, type: 'strength_training', name: 'Strength', dist: 0, dur: 2700, load: 35, zones: [900, 600, 120, 0, 0], cal: 260, avgHR: 112, maxHR: 150 });
   }
-  return { summary: { activities: activities.length, days: 181, nights: Object.keys(sleep).length, hrvDays: Object.keys(hrv).length, weighIns: 0, from: dayKey(now - 180 * DAY), to: dayKey(now), lastSync: new Date().toISOString() }, activities, daily, sleep, hrv, weight: {}, zones: [{ sport: 'RUNNING', zone1Floor: 98, zone2Floor: 118, zone3Floor: 137, zone4Floor: 157, zone5Floor: 176, maxHeartRateUsed: 196 }], fitnessAge: { fitnessAge: 29 }, profile: { name: 'Demo user' }, extra: {},
+  return { summary: { activities: activities.length, days: 181, nights: Object.keys(sleep).length, hrvDays: Object.keys(hrv).length, weighIns: 0, from: dayKey(now - 180 * DAY), to: dayKey(now), lastSync: new Date().toISOString() }, activities, daily, sleep, hrv, weight: {}, zones: [{ sport: 'RUNNING', zone1Floor: 98, zone2Floor: 118, zone3Floor: 137, zone4Floor: 157, zone5Floor: 176, maxHeartRateUsed: 196 }], fitnessAge: { chronologicalAge: 21, fitnessAge: 24.6, achievableFitnessAge: 20, previousFitnessAge: 25.1, components: { vigorousDaysAvg: { value: 2.1, targetValue: 4, improvementValue: 2.4 }, rhr: { value: 56 }, vigorousMinutesAvg: { value: 95, targetValue: 150, improvementValue: 1.2 }, bmi: { value: 22.4 } } }, profile: { name: 'Demo user' }, extra: {},
     probe: { at: new Date().toISOString(), results: { profile: { status: 200, ok: true, bytes: 900, path: '/userprofile-service/socialProfile' }, trainingStatus: { status: 403, ok: false, bytes: 0, path: '/metrics-service/metrics/trainingstatus/aggregated' } } } };
 }
 function demoBB(k, D) {
@@ -1763,6 +1822,11 @@ function demoApi(path) {
   if (u.pathname === '/api/raw') {
     if (q.kind === 'probe') return ok(D.probe);
     if (q.kind === 'extra') return none();
+    if (q.kind === 'hrvDetail') {
+      const mk = (k) => { const h = D.hrv[k]; if (!h) return null; let s2 = parseDay(k) / 1e5 % 9973 || 3; const r2 = () => { s2 = (s2 * 16807) % 2147483647; return s2 / 2147483647; }; const t0 = parseDay(k) - 1.5 * 3600e3; return { hrvSummary: { lastNightAvg: h.last }, hrvReadings: Array.from({ length: 84 }, (_, i) => ({ hrvValue: Math.round(h.last + Math.sin(i / 9) * 8 + (r2() - 0.5) * 12 + (i > 20 && i < 50 ? 6 : 0)), readingTimeGMT: new Date(t0 + i * 300e3).toISOString().replace('Z', '') })) }; };
+      if (q.key) { const v = mk(q.key); return v ? ok(v) : none(); }
+      return ok(Object.fromEntries(Object.keys(D.hrv).slice(-20).map((k) => [k, mk(k)])));
+    }
     if (q.kind === 'bb') { if (q.key) return D.daily[q.key] ? ok(demoBB(q.key, D)) : none(); return ok(Object.fromEntries(Object.keys(D.daily).slice(-30).map((k) => [k, demoBB(k, D)]))); }
     const map = q.kind === 'activities' ? Object.fromEntries(D.activities.map((a) => [a.id, { activityId: a.id, startTimeLocal: a.start, activityName: a.name, ...a }])) : D[q.kind];
     if (q.kind === 'sleep' && q.key && map?.[q.key]) return ok({ ...map[q.key], sleepScores: { overall: { value: map[q.key].score }, totalDuration: { value: 82, qualifierKey: 'GOOD' }, stress: { value: 74, qualifierKey: 'FAIR' }, deepPercentage: { value: 88, qualifierKey: 'EXCELLENT' }, remPercentage: { value: 79, qualifierKey: 'GOOD' }, restlessness: { value: 65, qualifierKey: 'FAIR' } } });

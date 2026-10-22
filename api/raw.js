@@ -5,7 +5,7 @@
 // kinds: activities, daily, sleep, hrv, weight, bb (keyed), extra (keyed), zones, fitnessAge, profile, probe, shapes
 import { DATA_PATH, isAuthed, readStore, sendJson } from '../lib/common.js';
 
-const KEYED = ['activities', 'daily', 'sleep', 'hrv', 'weight', 'bb'];
+const KEYED = ['activities', 'daily', 'sleep', 'hrv', 'weight', 'bb', 'hrvDetail'];
 const SINGLE = ['zones', 'fitnessAge', 'profile', 'probe', 'shapes'];
 
 export default async function handler(req, res) {

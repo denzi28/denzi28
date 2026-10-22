@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   const p = state.profile || {};
   return sendJson(res, 200, {
     summary: summarize(state),
-    syncing: !state.lastSync || !state.act.backfillDone || !(state.cursors?.bb || state.errors?.bb),
+    syncing: !state.lastSync || !state.act.backfillDone || !(state.cursors?.bb || state.errors?.bb) || state.shapesV !== 3,
     ...n,
     zones: state.zones,
     fitnessAge: state.fitnessAge,
